@@ -1,0 +1,18 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Organizer Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Welcome, {{ user.username }}</h2>
+    <a href="{% url 'create_post' %}" class="button">Create New Event</a>
+    <h3>Your Events:</h3>
+    <ul>
+        {% for post in user.posts.all %}
+            <li>{{ post.title }} <a href="{% url 'update_post' post.id %}">Edit</a> <a href="{% url 'delete_post' post.id %}">Delete</a></li>
+        {% empty %}
+            <li>No events created yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

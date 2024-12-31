@@ -1,0 +1,34 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'home/styles.css' %}">
+    <title>{% block title %}EventHub{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>EventHub</h1>
+        <nav>
+            <a href="{% url 'post_list' %}">View Events</a>
+            {% if user.is_authenticated %}
+                {% if user.is_organizer %}
+                    <a href="{% url 'organizer_dashboard' %}">Dashboard</a>
+                {% else %}
+                    <a href="{% url 'user_dashboard' %}">Dashboard</a>
+                {% endif %}
+                <a href="{% url 'logout' %}">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'signup' %}">Sign Up</a>
+            {% endif %}
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>&copy; 2024 EventHub. All rights reserved.</p>
+    </footer>
+</body>
+</html>

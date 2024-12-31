@@ -1,0 +1,17 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}User Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Welcome, {{ user.username }}</h2>
+    <p>Here are the events you showed interest in:</p>
+    <ul>
+        {% for event in user.interested_posts.all %}
+            <li>{{ event.title }}</li>
+        {% empty %}
+            <li>No events yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

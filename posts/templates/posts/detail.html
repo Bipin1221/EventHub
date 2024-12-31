@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }}</title>
+</head>
+<body>
+    <h1>{{ post.title }}</h1>
+    <p>{{ post.content }}</p>
+    <p>Organized by: {{ post.organizer.username }}</p>
+    <p>Created at: {{ post.created_at }}</p>
+    {% if user.is_authenticated %}
+        {% if user == post.organizer %}
+            <a href="{% url 'update_post' post.id %}">Edit</a>
+            <a href="{% url 'delete_post' post.id %}">Delete</a>
+        {% else %}
+            <form method="post" action="{% url 'show_interest' post.id %}">
+                {% csrf_token %}
+                <button type="submit">
+                    {% if is_interested %}Remove Interest{% else %}Show Interest{% endif %}
+                </button>
+            </form>
+        {% endif %}
+    {% else %}
+        <p><a href="{% url 'login' %}">Log in</a> to interact with this post.</p>
+    {% endif %}
+</body>
+</html>

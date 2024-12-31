@@ -1,0 +1,53 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-box">
+        <h2>Login</h2>
+        <p>Select your account type and login below.</p>
+
+        <!-- Tabs for switching between Organizer/User -->
+        <div class="form-tabs">
+            <button class="tab-button active" onclick="showForm('organizer')">Organizer Login</button>
+            <button class="tab-button" onclick="showForm('user')">User Login</button>
+        </div>
+
+        <!-- Organizer Login Form -->
+        <div id="organizer-form" class="form-content active">
+            <form method="post">
+                {% csrf_token %}
+                <h3>Organizer Login</h3>
+                {{ organizer_form.as_p }}
+                <button type="submit" name="organizer_login" value="1">Login as Organizer</button>
+            </form>
+        </div>
+
+        <!-- User Login Form -->
+        <div id="user-form" class="form-content">
+            <form method="post">
+                {% csrf_token %}
+                <h3>User Login</h3>
+                {{ user_form.as_p }}
+                <button type="submit" name="user_login" value="1">Login as User</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showForm(type) {
+        const forms = document.querySelectorAll('.form-content');
+        const tabs = document.querySelectorAll('.tab-button');
+
+        forms.forEach(form => form.classList.remove('active'));
+        tabs.forEach(tab => tab.classList.remove('active'));
+
+        document.getElementById(type + '-form').classList.add('active');
+        document.querySelector(`[onclick="showForm('${type}')"]`).classList.add('active');
+    }
+</script>
+{% endblock %}
