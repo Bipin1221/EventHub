@@ -7,7 +7,6 @@ class OrganizerOnlyMiddleware:
     def __call__(self, request):
         if request.path.startswith("/posts/") and request.user.is_authenticated:
             restricted_paths = ["/create/", "/update/", "/delete/"]
-            if any(request.path.endswith(path) for path in restricted_paths) and not request.user.is_staff:
+            if any(request.path.endswith(path) for path in restricted_paths) and not getattr(request.user, 'is_organizer', False):
                 return HttpResponseForbidden("You are not allowed to perform this action.")
         return self.get_response(request)
-
