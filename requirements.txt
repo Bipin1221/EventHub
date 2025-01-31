@@ -1,0 +1,5 @@
+django
+Djangorestframework
+psycopg2
+drf_spectacular
+pillow
