@@ -99,42 +99,7 @@ class PrivateEventAPITests(TestCase):
         self.assertEqual(res.data, serializer.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-    # def test_create_event(self):
-    #     """Test creating an event."""
-    #     payload = {
-    #     'title': 'Sample Event Title',
-    #     'description': 'Sample description',
-    #     'link': 'http://example.com/events.pdf',
-    #     'created_at': '2025-01-02',
-    #     'event_dates': '2025-03-02',
-    #     'time': '00:00:00', 
-        
-            
-    #     }
-
-    #     res = self.client.post(EVENTS_URL, payload, format='json')
-
-    #     # # Debugging: print response data if the test fails
-    #     if res.status_code != status.HTTP_201_CREATED:
-    #         print(res.data)  # This will show you the error message, if any
-
-    #     self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-
-    #     event = Events.objects.get(id=res.data['id'])
-
-    #     # Validate that each field is correctly stored
-    #     for k, v in payload.items():
-    #         if k == "event_dates":
-    #             self.assertEqual(str(getattr(event, k)), v)  # Date comparison
-    #         elif k == "time":
-    #             self.assertEqual(str(getattr(event, k)), v)  # Time comparison
-    #         elif k=='category':
-    #             continue
-    #         else:
-    #             self.assertEqual(str(getattr(event, k)), v)  # For other fields
-
-    #     self.assertEqual(event.user, self.user)
-
+    
     def test_partial_update(self):
         """Test partial update of a event."""
         original_link = 'https://example.com/event.pdf'
@@ -154,47 +119,6 @@ class PrivateEventAPITests(TestCase):
         self.assertEqual(event.link, original_link)
         self.assertEqual(event.user, self.user)
 
-    # def test_full_update(self):
-    #     """Test full update of event."""
-    #     event = create_events(
-    #         user=self.user,
-    #         title='Sample event title',
-    #         link='https://exmaple.com/event.pdf',
-    #         description='Sample event description.',
-            
-    #     )
-
-    #     payload = {
-    #         'title': 'New event title',
-    #         'link': 'https://example.com/new-event.pdf',
-    #         'description': 'New event description',
-    #         'created_at': '2025-01-02',
-    #         'event_dates': '2025-03-02',
-    #         'time': '00:00:00',  # Correct format without extraneous characters
-            
-
-    #         }
-
-    #     url = detail_url(event.id)
-    #     res = self.client.put(url, payload)
-
-    #     # Debugging: print response data if the test fails
-    #     if res.status_code != status.HTTP_200_OK:
-    #         print(res.data)  # This will show you the error message, if any
-
-    #     self.assertEqual(res.status_code, status.HTTP_200_OK)
-    #     event.refresh_from_db()
-    #     for k, v in payload.items():
-    #         if k == "event_dates":
-    #             self.assertEqual(str(getattr(event, k)), v)
-    #         elif k == "time":
-    #             self.assertEqual(str(getattr(event, k)), v)
-    #         elif k=='category':
-    #             continue
-    #         else:
-    #             self.assertEqual(str(getattr(event, k)), v)
-
-    #     self.assertEqual(event.user, self.user)
 
     def test_update_user_returns_error(self):
         """Test changing the event user results in an error."""

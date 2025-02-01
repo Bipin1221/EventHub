@@ -1,14 +1,16 @@
 """
 Views for the user API.
 """
-from rest_framework import generics, authentication, permissions
-from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework import generics, authentication, permissions, status
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.settings import api_settings
 
-from user.serializers import (
-    UserSerializer,
-    AuthTokenSerializer,
-)
+from django.core.mail import send_mail
+from django.conf import settings
+
+from user.serializers import UserSerializer, AuthTokenSerializer
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -16,10 +18,32 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
 
-class CreateTokenView(ObtainAuthToken):
-    """Create a new auth token for user."""
+class CreateTokenView(APIView):
+    """Create a new auth token for user and send it via email."""
     serializer_class = AuthTokenSerializer
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data["user"]
+        
+        Token.objects.filter(user=user).delete()
+        new_token = Token.objects.create(user=user)
+
+
+        # Send the token to the user's email
+        send_mail(
+            subject="Your Authentication Token",
+            message=f"Your authentication token is: {new_token.key}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return Response({"message": "Token sent to your email."}, status=200)
+        
+        
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
