@@ -28,20 +28,22 @@ class CreateTokenView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
-        token, created = Token.objects.get_or_create(user=user)
+        
+        Token.objects.filter(user=user).delete()
+        new_token = Token.objects.create(user=user)
+
 
         # Send the token to the user's email
         send_mail(
             subject="Your Authentication Token",
-            message=f"Your authentication token is: {token.key}",
+            message=f"Your authentication token is: {new_token.key}",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
         )
-
-        return Response(
-            {"message": "Token sent to your email."}, status=status.HTTP_200_OK
-        )
+        return Response({"message": "Token sent to your email."}, status=200)
+        
+        
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
