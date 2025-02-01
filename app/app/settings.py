@@ -45,6 +45,23 @@ INSTALLED_APPS = [
     'Events'
 ]
 
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"  
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "bipinbhattarai125@gmail.com"  # Replace with your email
+EMAIL_HOST_PASSWORD = "quko ovzy fowz nqpf"  # Use an app password for security
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+
+
+
+
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -145,3 +162,4 @@ REST_FRAMEWORK={
 SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
+
