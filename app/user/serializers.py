@@ -58,3 +58,15 @@ class AuthTokenSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+
+
+class VerifyTokenSerializer(serializers.Serializer):
+    """Serializer to validate and verify authentication token."""
+    token = serializers.CharField()
+
+    def validate_token(self, value):
+        """Check if the token exists and is valid."""
+        if not Token.objects.filter(key=value).exists():
+            raise serializers.ValidationError("Invalid token.")
+        return value

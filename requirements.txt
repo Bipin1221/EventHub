@@ -1,5 +1,8 @@
+
 django
 Djangorestframework
 psycopg2
 drf_spectacular
 pillow
+django-cors-headers
+

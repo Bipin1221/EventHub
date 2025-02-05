@@ -7,6 +7,8 @@ from django.urls import reverse
 
 from rest_framework.test import APIClient
 from rest_framework import status
+from django.core import mail
+from rest_framework.authtoken.models import Token
 
 
 CREATE_USER_URL = reverse('user:create')
@@ -65,6 +67,11 @@ class PublicUserApiTests(TestCase):
             email=payload['email']
         ).exists()
         self.assertFalse(user_exists)
+
+
+
+
+    
 
     
     def test_create_token_bad_credentials(self):
