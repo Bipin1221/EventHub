@@ -9,7 +9,7 @@ from rest_framework.settings import api_settings
 
 from django.core.mail import send_mail
 from django.conf import settings
-from rest_framework.decorators import api_view
+
 from user.serializers import UserSerializer, AuthTokenSerializer,VerifyTokenSerializer
 
 

@@ -9,7 +9,7 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 from django.conf import settings
-
+from django.utils import timezone
 
 def event_image_file_path(instance,filename):
     """generate file path for new event image."""
@@ -41,19 +41,22 @@ class UserManager(BaseUserManager):
 
          return user
 
-class User(AbstractBaseUser,PermissionsMixin):
-    """user in the system"""
+class User(AbstractBaseUser, PermissionsMixin):
+    """User in the system."""
+    ROLE_CHOICES = [
+        ('organizer', 'Organizer'),
+        ('attendee', 'Attendee'),
+    ]
 
-    email = models.EmailField(max_length=255,unique=True)
+    email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
-    is_active = models.BooleanField(default = True)
-    is_staff = models.BooleanField(default = False)
-    
-    objects=UserManager()
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='attendee')  # New field
+
+    objects = UserManager()
 
     USERNAME_FIELD = 'email'
-
-from django.utils import timezone
 
 class Events(models.Model):
     """Event object."""
