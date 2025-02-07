@@ -162,10 +162,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'core.User'
 
 
-REST_FRAMEWORK={
-    'DEFAULT_SCHEMA_CLASS':'drf_spectacular.openapi.AutoSchema',
-}
+# REST_FRAMEWORK={
+#     'DEFAULT_SCHEMA_CLASS':'drf_spectacular.openapi.AutoSchema',
+# }
 SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
 
+
+REST_FRAMEWORK= {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # If you have TokenAuthentication here, you can override it in views as needed
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_SCHEMA_CLASS':'drf_spectacular.openapi.AutoSchema',
+}

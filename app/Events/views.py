@@ -1,5 +1,5 @@
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated , AllowAny
 from rest_framework import (viewsets,
                             mixins,
                             status)
@@ -14,7 +14,10 @@ from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
 )
+from rest_framework import generics
+from rest_framework.exceptions import PermissionDenied
 
+from django.db.models import Q
 
 @extend_schema_view(
     list=extend_schema(
@@ -74,8 +77,9 @@ class EventsViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new event, associating it with the authenticated user."""
+        if self.request.user.role != 'organizer':
+            raise PermissionDenied("Only organizers can create events.")
         serializer.save(user=self.request.user)
-
 
     @action(methods=['POST'], detail=True, url_path='upload-image')
     def upload_image(self, request, pk=None):
@@ -88,6 +92,38 @@ class EventsViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['POST'], detail=True, url_path='show-interest')
+    def show_interest(self, request, pk=None):
+        """Allow attendees to show interest in an event."""
+        event = self.get_object()
+        user = request.user
+
+        if user.role != 'attendee':
+            raise PermissionDenied("Only attendees can show interest in events.")
+
+        interest, created = Interest.objects.get_or_create(user=user, event=event)
+        if not created:
+            return Response({"message": "You have already shown interest in this event."}, status=status.HTTP_200_OK)
+
+        return Response({"message": "Interest shown successfully."}, status=status.HTTP_201_CREATED)
+
+    @action(methods=['POST'], detail=True, url_path='add-comment')
+    def add_comment(self, request, pk=None):
+        """Allow attendees to add comments to an event."""
+        event = self.get_object()
+        user = request.user
+
+        if user.role != 'attendee':
+            raise PermissionDenied("Only attendees can comment on events.")
+
+        serializer = CommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=user, event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
@@ -133,3 +169,22 @@ class CategoryViewSet(BaseEventAttrViewSet):
     """Manage category in the database."""
     serializer_class = serializers.CategorySerializer
     queryset = Category.objects.all()
+
+
+from .custom_permission import readonly
+
+class PublicEventsListView(generics.ListAPIView):
+    """View for listing all events (no authentication required)."""
+    serializer_class = serializers.PublicEventsSerializer
+    permission_classes = [readonly]  # Allow anyone to access this view
+     # Disable authentication for this view
+  
+    queryset= Events.objects.all()
+
+
+class PublicEventsDetailView(generics.RetrieveAPIView):
+    """View for retrieving a single event (no authentication required)."""
+    serializer_class = serializers.PublicEventsDetailSerializer
+    permission_classes = [AllowAny]
+    
+    queryset = Events.objects.all()

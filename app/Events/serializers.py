@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Events, Category
+from core.models import Events, Category,Interest,Comment
 from django.utils import timezone
 
 
@@ -55,6 +55,9 @@ class EventsSerializer(serializers.ModelSerializer):
 
 
 
+
+
+
 class EventsDetailSerializer(EventsSerializer):
     """Serializer for event detail, including description."""
     class Meta(EventsSerializer.Meta):
@@ -69,3 +72,40 @@ class EventsImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image']
         read_only_fields = ['id']
         extra_kwargs = {'image': {'required': 'False'}}
+
+
+
+class PublicEventsSerializer(serializers.ModelSerializer):
+    """Serializer for public event listing."""
+    event_dates = serializers.DateField(format="%Y-%m-%d")
+    created_at = serializers.DateField(format="%Y-%m-%d")
+    time = serializers.TimeField(format='%H:%M:%S')
+    category = CategorySerializer(many=True)
+
+    class Meta:
+        model = Events
+        fields = ['id', 'title', 'event_dates', 'link', 'created_at', 'time', 'category']
+        read_only_fields = ['id']
+
+class PublicEventsDetailSerializer (PublicEventsSerializer):
+
+    class Meta(PublicEventsSerializer.Meta):
+        fields = PublicEventsSerializer.Meta.fields + ['description']+['image']
+        read_only_field = ['image']
+
+class InterestSerializer(serializers.ModelSerializer):
+    """Serializer for interests."""
+    class Meta:
+        model = Interest
+        fields = ['id', 'user', 'event', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Serializer for comments."""
+    user = serializers.StringRelatedField(read_only=True)  # Show the user's name or email
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'event', 'text', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']

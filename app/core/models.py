@@ -89,5 +89,20 @@ class Category(models.Model):
 
 
 
+class Interest(models.Model):
+    """Model to track attendees' interest in events."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='interests')
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ('user', 'event')  # Prevent duplicate interests
+
+
+class Comment(models.Model):
+    """Model to allow attendees to comment on events."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
