@@ -14,6 +14,8 @@ from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
 )
+
+from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
 
@@ -126,6 +128,35 @@ class EventsViewSet(viewsets.ModelViewSet):
 
 
 
+    @action(methods=['POST'], detail=True, url_path='rate-event')
+    def rate_event(self, request, pk=None):
+        """Allow attendees to rate an event."""
+        event = self.get_object()
+        user = request.user
+
+        if user.role != 'attendee':
+            raise PermissionDenied("Only attendees can rate events.")
+
+        serializer = RatingSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=user, event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+    
+    @action(methods=['POST'], detail=True, url_path='upload-images')
+    def upload_images(self, request, pk=None):
+        """Upload multiple images to an event."""
+        event = self.get_object()
+        images = request.FILES.getlist('images')  # Expect a list of images
+
+        for image in images:
+            EventImage.objects.create(event=event, image=image)
+
+        return Response({"message": "Images uploaded successfully."}, status=status.HTTP_201_CREATED)
 
 @extend_schema_view(
     list=extend_schema(
@@ -171,15 +202,39 @@ class CategoryViewSet(BaseEventAttrViewSet):
     queryset = Category.objects.all()
 
 
-from .custom_permission import readonly
+# from .custom_permission import readonly
+
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10  # Number of events per page
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 
 class PublicEventsListView(generics.ListAPIView):
     """View for listing all events (no authentication required)."""
     serializer_class = serializers.PublicEventsSerializer
-    permission_classes = [readonly]  # Allow anyone to access this view
-     # Disable authentication for this view
-  
-    queryset= Events.objects.all()
+    permission_classes = [AllowAny]
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        """Filter events by category and search query if provided."""
+        queryset = Events.objects.all().order_by('-created_at')
+        category = self.request.query_params.get('category')
+        search_query = self.request.query_params.get('search')
+
+        if category:
+            category_ids = [int(id) for id in category.split(',')]
+            queryset = queryset.filter(category__id__in=category_ids)
+
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) | Q(description__icontains=search_query)
+            )
+
+        return queryset
 
 
 class PublicEventsDetailView(generics.RetrieveAPIView):
@@ -188,3 +243,6 @@ class PublicEventsDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     
     queryset = Events.objects.all()
+
+
+

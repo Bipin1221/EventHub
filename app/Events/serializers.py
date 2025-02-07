@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Events, Category,Interest,Comment
+from core.models import Events, Category,Interest,Comment,Rating,EventImage
 from django.utils import timezone
 
 
@@ -109,3 +109,24 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ['id', 'user', 'event', 'text', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
+
+
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    """Serializer for ratings."""
+    user = serializers.StringRelatedField(read_only=True)  # Show the user's name or email
+
+    class Meta:
+        model = Rating
+        fields = ['id', 'user', 'event', 'value', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+
+
+class EventImageSerializer(serializers.ModelSerializer):
+    """Serializer for event images."""
+    class Meta:
+        model = EventImage
+        fields = ['id', 'event', 'image', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']

@@ -106,3 +106,22 @@ class Comment(models.Model):
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+
+
+class Rating(models.Model):
+    """Model to allow attendees to rate events."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='ratings')
+    value = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # Ratings from 1 to 5
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'event')  # Prevent duplicate ratings
+
+
+
+class EventImage(models.Model):
+    """Model to store multiple images for an event."""
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='event_images')
+    image = models.ImageField(upload_to='event_images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
