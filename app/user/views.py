@@ -33,14 +33,14 @@ class CreateTokenView(APIView):
         new_token = Token.objects.create(user=user)
 
 
-        # Send the token to the user's email
-        # send_mail(
-        #     subject="Your Authentication Token",
-        #     message=f"Your authentication token is: {new_token.key}",
-        #     from_email=settings.DEFAULT_FROM_EMAIL,
-        #     recipient_list=[user.email],
-        #     fail_silently=False,
-        # )
+        #Send the token to the user's email
+        send_mail(
+            subject="Your Authentication Token",
+            message=f"Muji ranmati k xa khabar?????: {new_token.key}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
         return Response({"message": "Token sent to your email.", "Token": new_token.key}, status=200)
         
         

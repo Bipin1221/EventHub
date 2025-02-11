@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf.urls.static import static
 from django.conf import settings
+
 from drf_spectacular.views import (
 
 SpectacularAPIView,
@@ -31,7 +32,7 @@ urlpatterns = [
     path('api/schema/',SpectacularAPIView.as_view(),name='api-schema'),
     path('api/docs/',SpectacularSwaggerView.as_view(url_name='api-schema'),name='api-docs'),
     path('api/user/', include('user.urls', namespace='user')),
-    path('api/events/',include('Events.urls')),
+    path('api/',include('Events.urls', namespace='events')),
 ]
  
 if settings.DEBUG:
