@@ -1,23 +1,17 @@
-"""urls mapping for the event app"""
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from Events import views
+from . import views
 
 router = DefaultRouter()
-router.register('', views.EventsViewSet)
-router.register('category',views.CategoryViewSet)
-app_name = 'events'
-
-   
+router.register('events', views.EventsViewSet, basename='events')
+router.register('categories', views.CategoryViewSet, basename='categories')
 
 urlpatterns = [
-
-    path('show-events/', views.PublicEventsListView.as_view(), name='public-list'),
-    path('show-event/<int:pk>/', views.PublicEventsDetailView.as_view(), name='public-events-detail'),
-    path('<int:pk>/show-interest/', views.EventsViewSet.as_view({'post': 'show_interest'}), name='show-interest'),
-    path('<int:pk>/add-comment/', views.EventsViewSet.as_view({'post': 'add_comment'}), name='add-comment'),
-    path('<int:pk>/rate-event/', views.EventsViewSet.as_view({'post': 'rate_event'}), name='rate-event'),
-    path('<int:pk>/upload-images/', views.EventsViewSet.as_view({'post': 'upload_images'}), name='upload-images'),
+    path('public/events/', views.PublicEventsListView.as_view(), name='public-events-list'),
+    path('public/events/<int:pk>/', views.PublicEventsDetailView.as_view(), name='public-events-detail'),
+    path('events/<int:pk>/comment/', views.CommentCreateAPIView.as_view(), name='create-comment'),
+    path('events/<int:pk>/rate/', views.RatingCreateAPIView.as_view(), name='create-rating'),
+    path('events/<int:pk>/interest/', views.InterestCreateAPIView.as_view(), name='show-interest'),
+    path('events/<int:pk>/upload-image/', views.EventImageUploadAPIView.as_view(), name='event-upload-image'),
     path('', include(router.urls)),
 ]

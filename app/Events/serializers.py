@@ -1,132 +1,112 @@
 from rest_framework import serializers
-from core.models import Events, Category,Interest,Comment,Rating,EventImage
-from django.utils import timezone
-
+from core.models import Events, Category, Interest, Comment, Rating, EventImage
 
 class CategorySerializer(serializers.ModelSerializer):
-    """Serializer for category"""
     class Meta:
         model = Category
         fields = ['id', 'name']
         read_only_fields = ['id']
 
+class EventCreateUpdateSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(many=True, required=False)
+    event_dates = serializers.DateField(format="%Y-%m-%d")
+    time = serializers.TimeField(format='%H:%M:%S')
 
-class EventsSerializer(serializers.ModelSerializer):
-    """Serializer for events."""
-    event_dates = serializers.DateField(format="%Y-%m-%d")  # Format the event date
-    created_at = serializers.DateField(format="%Y-%m-%d")  # Format the created_at field
-    time = serializers.TimeField(format='%H:%M:%S')  # Use TimeField to properly handle time format
-    category = CategorySerializer(many=True)
-    
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'link', 'created_at', 'time', 'category']
+        fields = ['id', 'title', 'event_dates', 'time', 'link', 'description', 'category']
         read_only_fields = ['id']
 
-    def _get_or_create_category(self, category, event):
-        """Handle getting or creating category as needed."""
-        auth_user = self.context['request'].user
-        for category in category:
-            category_obj, category = Category.objects.get_or_create(
-                user=auth_user,
-                **category,
-            )
-            event.category.add(category_obj)
-
     def create(self, validated_data):
-        """Create an event."""
         categories = validated_data.pop('category', [])
-        event = Events.objects.create(**validated_data)
-        self._get_or_create_category(categories, event)
+        event = Events.objects.create(
+            user=self.context['request'].user,
+            **validated_data
+        )
+        self._handle_categories(categories, event)
         return event
 
     def update(self, instance, validated_data):
-        """Update event."""
         categories = validated_data.pop('category', None)
         if categories is not None:
             instance.category.clear()
-            self._get_or_create_category(categories, instance)
-        
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            self._handle_categories(categories, instance)
+        return super().update(instance, validated_data)
 
-        instance.save()
-        return instance
+    def _handle_categories(self, categories, event):
+        auth_user = self.context['request'].user
+        for cat_data in categories:
+            cat, _ = Category.objects.get_or_create(
+                user=auth_user,
+                **cat_data
+            )
+            event.category.add(cat)
 
-
-
-
-
-
-class EventsDetailSerializer(EventsSerializer):
-    """Serializer for event detail, including description."""
-    class Meta(EventsSerializer.Meta):
-        fields = EventsSerializer.Meta.fields + ['description']+['image']
-        read_only_fields = ['image'] 
-
-class EventsImageSerializer(serializers.ModelSerializer):
-    """Serializer for uploading images to events."""
-
-    class Meta:
-        model = Events
-        fields = ['id', 'image']
-        read_only_fields = ['id']
-        extra_kwargs = {'image': {'required': 'False'}}
-
-
-
-class PublicEventsSerializer(serializers.ModelSerializer):
-    """Serializer for public event listing."""
-    event_dates = serializers.DateField(format="%Y-%m-%d")
-    created_at = serializers.DateField(format="%Y-%m-%d")
-    time = serializers.TimeField(format='%H:%M:%S')
+class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
+    event_dates = serializers.DateField(format="%Y-%m-%d")
+    time = serializers.TimeField(format='%H:%M:%S')
 
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'link', 'created_at', 'time', 'category']
-        read_only_fields = ['id']
+        fields = ['id', 'title', 'event_dates', 'time', 'link', 'category']
 
-class PublicEventsDetailSerializer (PublicEventsSerializer):
+class EventDetailSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(many=True)
+    comments = serializers.SerializerMethodField()
+    ratings = serializers.SerializerMethodField()
+    event_dates = serializers.DateField(format="%Y-%m-%d")
+    time = serializers.TimeField(format='%H:%M:%S')
 
-    class Meta(PublicEventsSerializer.Meta):
-        fields = PublicEventsSerializer.Meta.fields + ['description']+['image']
-        read_only_field = ['image']
-
-class InterestSerializer(serializers.ModelSerializer):
-    """Serializer for interests."""
     class Meta:
-        model = Interest
-        fields = ['id', 'user', 'event', 'created_at']
-        read_only_fields = ['id', 'user', 'created_at']
+        model = Events
+        fields = [
+            'id', 'title', 'event_dates', 'time', 'link', 
+            'description', 'image', 'category', 'comments', 'ratings'
+        ]
 
+    def get_comments(self, obj):
+        return CommentSerializer(obj.comments.all(), many=True).data
+
+    def get_ratings(self, obj):
+        return RatingSerializer(obj.ratings.all(), many=True).data
+
+class PublicEventsSerializer(EventListSerializer):
+    created_at = serializers.DateField(format="%Y-%m-%d")
+    
+    class Meta(EventListSerializer.Meta):
+        fields = EventListSerializer.Meta.fields + ['created_at']
+
+class PublicEventsDetailSerializer(EventDetailSerializer):
+    created_at = serializers.DateField(format="%Y-%m-%d")
+    
+    class Meta(EventDetailSerializer.Meta):
+        fields = EventDetailSerializer.Meta.fields + ['created_at']
 
 class CommentSerializer(serializers.ModelSerializer):
-    """Serializer for comments."""
-    user = serializers.StringRelatedField(read_only=True)  # Show the user's name or email
-
+    user = serializers.StringRelatedField(read_only=True)
+    
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'event', 'text', 'created_at']
+        fields = ['id', 'user', 'text', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
-
-
-
 
 class RatingSerializer(serializers.ModelSerializer):
-    """Serializer for ratings."""
-    user = serializers.StringRelatedField(read_only=True)  # Show the user's name or email
-
+    user = serializers.StringRelatedField(read_only=True)
+    
     class Meta:
         model = Rating
-        fields = ['id', 'user', 'event', 'value', 'created_at']
+        fields = ['id', 'user', 'value', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
 
-
+class InterestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interest
+        fields = ['id', 'user', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
 
 class EventImageSerializer(serializers.ModelSerializer):
-    """Serializer for event images."""
     class Meta:
         model = EventImage
-        fields = ['id', 'event', 'image', 'uploaded_at']
+        fields = ['id', 'image', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
