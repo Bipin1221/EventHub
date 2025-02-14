@@ -57,12 +57,12 @@ class EventDetailSerializer(serializers.ModelSerializer):
     ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time = serializers.TimeField(format='%H:%M:%S')
-
+    user = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Events
         fields = [
             'id', 'title', 'event_dates', 'time', 'link', 
-            'description', 'image', 'category', 'comments', 'ratings'
+            'description', 'image', 'category', 'comments', 'ratings', 'user'
         ]
 
     def get_comments(self, obj):

@@ -53,7 +53,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='attendee')
 
     objects = UserManager()
-    read_only_fields = ['role']
+    # read_only_fields = ['role']
     USERNAME_FIELD = 'email'
 
 
