@@ -15,8 +15,8 @@ from django.utils import timezone
 def event_image_file_path(instance, filename):
     """Generate file path for new event image."""
     ext = filename.split('.')[-1]
-    filename = f"{instance.id}_{uuid.uuid4()}.{ext}"
-    return os.path.join('uploads', 'events', str(instance.id), filename)
+    filename = f"{uuid.uuid4()}.{ext}"
+    return os.path.join('uploads', 'events', filename)
 
 
 class UserManager(BaseUserManager):
