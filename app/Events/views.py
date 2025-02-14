@@ -32,7 +32,7 @@ class EventsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOrganizer]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
    
-    search_fields = ['title', 'description','category__name'] 
+    search_fields = ['title', 'description','category__name', 'venue_location'] 
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -83,7 +83,7 @@ class PublicEventsListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
    
-    search_fields = ['title', 'description','category__name'] 
+    search_fields = ['title', 'description','category__name', 'venue_location'] 
     def get_queryset(self):
         return Events.objects.all()
       

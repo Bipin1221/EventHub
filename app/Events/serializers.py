@@ -10,11 +10,14 @@ class CategorySerializer(serializers.ModelSerializer):
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True, required=False)
     event_dates = serializers.DateField(format="%Y-%m-%d")
-    time = serializers.TimeField(format='%H:%M:%S')
+    time_start = serializers.TimeField(format='%H:%M:%S')
 
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time', 'link', 'description', 'category']
+        fields = ['id', 'title', 'event_dates', 'time_start',
+                  'venue_name', 'venue_location', 'venue_capacity', 
+                  'link', 'description', 'category'
+                  ]
         read_only_fields = ['id']
 
     def create(self, validated_data):
@@ -45,24 +48,26 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
 class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     event_dates = serializers.DateField(format="%Y-%m-%d")
-    time = serializers.TimeField(format='%H:%M:%S')
+    time_start = serializers.TimeField(format='%H:%M:%S')
 
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time', 'link', 'category']
+        fields = ['id', 'title', 'event_dates', 'time_start', 'link', 'category']
 
 class EventDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     comments = serializers.SerializerMethodField()
     ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
-    time = serializers.TimeField(format='%H:%M:%S')
+    time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Events
         fields = [
-            'id', 'title', 'event_dates', 'time', 'link', 
-            'description', 'image', 'category', 'comments', 'ratings', 'user'
+            'id', 'title', 'event_dates', 'time_start',
+             'venue_name', 'venue_location', 'venue_capacity','link', 
+            'description', 'image', 'category',
+              'comments', 'ratings', 'user'
         ]
 
     def get_comments(self, obj):

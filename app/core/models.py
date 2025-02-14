@@ -74,7 +74,10 @@ class Events(models.Model):
     created_at = models.DateField(default=timezone.now)
     event_dates = models.DateField(default=timezone.now)
     link = models.CharField(max_length=255, blank=True)
-    time = models.TimeField(default=timezone.now)
+    venue_name = models.CharField(max_length=150,blank= True)
+    venue_location = models.CharField(max_length=150,blank= True)
+    venue_capacity = models.IntegerField(blank=True, null=True)
+    time_start = models.TimeField(default=timezone.now)
     category = models.ManyToManyField(Category, blank=True)
     image = models.ImageField(null=True, blank=True, upload_to=event_image_file_path)
     
