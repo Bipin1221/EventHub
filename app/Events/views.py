@@ -20,7 +20,8 @@ from .serializers import (
     EventImageSerializer,
     CategorySerializer
 )
-
+from rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
 class IsOrganizer(BasePermission):
     def has_permission(self, request, view):
         return request.user.role == 'organizer'
@@ -29,6 +30,9 @@ class EventsViewSet(viewsets.ModelViewSet):
     queryset = Events.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsOrganizer]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+   
+    search_fields = ['title', 'description','category__name'] 
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -77,18 +81,12 @@ class CategoryViewSet(mixins.ListModelMixin,
 class PublicEventsListView(generics.ListAPIView):
     serializer_class = PublicEventsSerializer
     permission_classes = [AllowAny]
-    
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+   
+    search_fields = ['title', 'description','category__name'] 
     def get_queryset(self):
-        queryset = Events.objects.all()
-        category_ids = self.request.query_params.get('category')
-        search = self.request.query_params.get('search')
-        
-        if category_ids:
-            queryset = queryset.filter(category__id__in=category_ids.split(','))
-        if search:
-            queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
-        return queryset.order_by('-created_at')
-
+        return Events.objects.all()
+      
 class PublicEventsDetailView(generics.RetrieveAPIView):
     serializer_class = PublicEventsDetailSerializer
     permission_classes = [AllowAny]
@@ -127,3 +125,6 @@ class InterestCreateAPIView(generics.CreateAPIView):
         if Interest.objects.filter(user=self.request.user, event=event).exists():
             raise ValidationError("You've already shown interest")
         serializer.save(user=self.request.user, event=event)
+       
+   
+   

@@ -15,3 +15,5 @@ urlpatterns = [
     path('events/<int:pk>/upload-image/', views.EventImageUploadAPIView.as_view(), name='event-upload-image'),
     path('', include(router.urls)),
 ]
+
+

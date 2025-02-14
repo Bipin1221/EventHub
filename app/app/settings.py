@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'Events',
     'corsheaders',
+    'django_filters',
 ]
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
