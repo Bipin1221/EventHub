@@ -3,16 +3,16 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
-router.register('events', views.EventsViewSet, basename='events')
+router.register('', views.EventsViewSet, basename='events')
 router.register('categories', views.CategoryViewSet, basename='categories')
 
 urlpatterns = [
-    path('public/events/', views.PublicEventsListView.as_view(), name='public-events-list'),
-    path('public/events/<int:pk>/', views.PublicEventsDetailView.as_view(), name='public-events-detail'),
-    path('events/<int:pk>/comment/', views.CommentCreateAPIView.as_view(), name='create-comment'),
-    path('events/<int:pk>/rate/', views.RatingCreateAPIView.as_view(), name='create-rating'),
-    path('events/<int:pk>/interest/', views.InterestCreateAPIView.as_view(), name='show-interest'),
-    path('events/<int:pk>/upload-image/', views.EventImageUploadAPIView.as_view(), name='event-upload-image'),
+    path('public-events/', views.PublicEventsListView.as_view(), name='public-events-list'),
+    path('public-events/<int:pk>/', views.PublicEventsDetailView.as_view(), name='public-events-detail'),
+    path('<int:pk>/comment/', views.CommentCreateAPIView.as_view(), name='create-comment'),
+    path('<int:pk>/rate/', views.RatingCreateAPIView.as_view(), name='create-rating'),
+    path('<int:pk>/interest/', views.InterestCreateAPIView.as_view(), name='show-interest'),
+    path('<int:pk>/upload-image/', views.EventImageUploadAPIView.as_view(), name='event-upload-image'),
     path('', include(router.urls)),
 ]
 
