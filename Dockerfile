@@ -3,7 +3,7 @@ FROM python:3.9-alpine3.13
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PATH="/py/bin:$PATH"
+ENV PATH="/scripts:/py/bin:$PATH"
 
 # Install system dependencies (jpeg-dev & zlib-dev needed for Pillow)
 RUN apk add --no-cache \
@@ -15,7 +15,7 @@ RUN apk add --no-cache \
     python3-dev \
     py3-pip 
 
-RUN apk add --no-cache jpeg-dev zlib zlib-dev
+RUN apk add --no-cache jpeg-dev zlib zlib-dev linux-headers
 
 
 # Create and activate a virtual environment
@@ -26,8 +26,9 @@ RUN /py/bin/pip install --no-cache-dir pillow
 
 # Copy requirement files
 COPY ./requirements.txt /tmp/requirements.txt
-COPY ./requirements.dev.txt /tmp/requirements.dev.txt
 
+COPY ./requirements.dev.txt /tmp/requirements.dev.txt
+COPY ./scripts /scripts
 # Install all dependencies
 ARG DEV=false
 RUN /py/bin/pip install -r /tmp/requirements.txt && \
@@ -38,7 +39,12 @@ RUN adduser --disabled-password --no-create-home django-user && \
     mkdir -p /vol/web/media && \
     mkdir -p /vol/web/static && \
     chown -R django-user:django-user /vol/web && \
-    chmod -R 775 /vol/web
+    chmod -R 775 /vol/web && \
+    chmod -R 755 /vol && \
+    chmod -R +x /scripts
+
+
+
 
 # Set the working directory and copy application files
 WORKDIR /app
@@ -49,3 +55,6 @@ EXPOSE 8000
 
 # Switch to the non-root user
 USER django-user
+
+CMD ["sh", "/scripts/run.sh"]
+

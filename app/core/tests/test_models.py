@@ -3,7 +3,9 @@ from django.test import TestCase
 from core import models
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
-
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
 
 def create_user(email='test@example.com', password='testpass123'):
     """Create and return a new user"""
@@ -156,3 +158,14 @@ class ModelTests(TestCase):
         file_path = models.event_image_file_path(None, 'example.jpg')
 
         self.assertEqual(file_path, f'uploads/events/{uuid}.jpg')
+
+class HealthCheckTests(TestCase):
+    """Test the health check API."""
+
+    def test_health_check(self):
+        """Test health check API."""
+        client = APIClient()
+        url = reverse('health-check')
+        res = client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
