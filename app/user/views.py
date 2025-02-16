@@ -42,7 +42,10 @@ class CreateTokenView(APIView):
             recipient_list=[user.email],
             fail_silently=False,
         )
-        return Response({"message": "Token sent to your email."}, status=200)
+        return Response({"message": "Token sent to your email.",
+                         "role": user.role,
+                          "email": user.email,
+                           "name": user.name }, status=200)
 
 
 class VerifyTokenView(APIView):
@@ -57,7 +60,11 @@ class VerifyTokenView(APIView):
             token = Token.objects.get(key=token_key)
 
             return Response(
-                {"message": "Token is valid.", "user_id": token.user.id},
+                {"message": "Token is valid.",
+                  "user_id": token.user.id,
+                  "role": token.user.role,
+                "email": token.user.email,
+                "name": token.user.name},
                 status=status.HTTP_200_OK
             )
 

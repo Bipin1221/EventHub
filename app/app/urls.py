@@ -23,6 +23,7 @@ from drf_spectacular.views import (
 SpectacularAPIView,
 SpectacularSwaggerView
 )
+from Events.views import KhaltiInitiatePaymentAPIView, KhaltiVerifyAPIView
 
 
 
@@ -34,6 +35,12 @@ urlpatterns = [
     path('api/user/', include('user.urls', namespace='user')),
     path('api/events/',include('Events.urls')),
 ]
+urlpatterns+= [
+    path('api/khalti/initiate/', KhaltiInitiatePaymentAPIView.as_view(), name='khalti_initiate_payment'),
+    path('api/khalti/verify/', KhaltiVerifyAPIView.as_view(), name='khalti_verify_payment'),
+  #  path('khalti/callback/', KhaltiPaymentCallbackAPIView.as_view(), name='khalti_payment_callback'), # Implement this in django style
+]
+
 
 if settings.DEBUG:
     urlpatterns += static(

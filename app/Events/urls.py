@@ -16,4 +16,10 @@ urlpatterns = [
     path('', include(router.urls)),
 ]
 
+######
+# urls.py
+from django.urls import path
+from .views import KhaltiInitiatePaymentAPIView, KhaltiVerifyAPIView#, KhaltiPaymentCallbackAPIView
+
+
 

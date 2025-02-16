@@ -119,3 +119,18 @@ class Rating(models.Model):
     
     class Meta:
         unique_together = ('user', 'event')  # Prevent duplicate ratings
+
+
+class Ticket(models.Model):
+    TICKET_CHOICES = [
+        ('Standard', 'Standard'),
+        ('VIP', 'VIP'),
+    ]
+    ticket_type = models.CharField(max_length=25, choices=TICKET_CHOICES, default='Standard')#Standrad or Vip
+    ticket_price = models.FloatField()
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name="ticket")
+    available_quantity = models.PositiveIntegerField(default=0)
+    
+    def __str__(self):
+        return self.ticket_id
+    

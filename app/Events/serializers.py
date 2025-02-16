@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Events, Category, Interest, Comment, Rating, EventImage
+from core.models import Events, Category, Interest, Comment, Rating, EventImage, Ticket
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -7,8 +7,16 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
         read_only_fields = ['id']
 
+class TicketSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ticket
+        fields = ['id', 'ticket_type', 'ticket_price', 'available_quantity']
+        read_only_field=['id']
+
+
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True, required=False)
+    ticket= TicketSerializer(many=True, required=False)
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
 
@@ -16,16 +24,20 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         model = Events
         fields = ['id', 'title', 'event_dates', 'time_start',
                   'venue_name', 'venue_location', 'venue_capacity', 
-                  'link', 'description', 'category'
+                  'link', 'description', 'category', 'ticket'
                   ]
         read_only_fields = ['id']
 
     def create(self, validated_data):
         categories = validated_data.pop('category', [])
+        ticket_datas = validated_data.pop('ticket',[])
         event = Events.objects.create(
             user=self.context['request'].user,
             **validated_data
         )
+        for ticket_data in ticket_datas:
+            Ticket.objects.create(event=event, **ticket_data)
+        
         self._handle_categories(categories, event)
         return event
 
@@ -49,10 +61,12 @@ class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
+   
 
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time_start', 'link', 'category']
+        fields = ['id', 'title', 'event_dates', 
+                  'time_start', 'link', 'category']
 
 class EventDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
@@ -61,13 +75,14 @@ class EventDetailSerializer(serializers.ModelSerializer):
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField(read_only=True)
+    ticket= TicketSerializer(many=True, required=False)
     class Meta:
         model = Events
         fields = [
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity','link', 
             'description', 'image', 'category',
-              'comments', 'ratings', 'user'
+              'comments', 'ratings', 'user', 'ticket'
         ]
 
     def get_comments(self, obj):
@@ -115,3 +130,16 @@ class EventImageSerializer(serializers.ModelSerializer):
         model = EventImage
         fields = ['id', 'image', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+
+
+class KhaltiInitiateSerializer(serializers.Serializer):
+    event_id = serializers.IntegerField(required=True)
+    class Meta:
+        fields = ['event_id']
+
+
+class KhaltiVerifySerializer(serializers.Serializer):
+    token = serializers.CharField()
+    amount = serializers.CharField()
+    class Meta:
+        fields = ['token', 'amount']

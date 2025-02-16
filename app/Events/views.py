@@ -127,4 +127,131 @@ class InterestCreateAPIView(generics.CreateAPIView):
         serializer.save(user=self.request.user, event=event)
        
    
-   
+
+########
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.conf import settings
+import requests
+from rest_framework.permissions import AllowAny
+import logging
+ # Import your Events model
+from .serializers import KhaltiInitiateSerializer, KhaltiVerifySerializer  # Import serializers
+
+logger = logging.getLogger(__name__)
+
+class KhaltiInitiatePaymentAPIView(APIView):
+    """
+    Initiates a Khalti payment for a given product.
+    """
+    permission_classes = [AllowAny] # or permission_classes = [IsAuthenticated]
+    serializer_class = KhaltiInitiateSerializer
+
+    def post(self, request):
+        serializer = KhaltiInitiateSerializer(data=request.data)
+        if serializer.is_valid():
+            event_id = serializer.validated_data['event_id']
+            try:
+                event = get_object_or_404(Events, id=event_id)  # Use Events model instead of Product
+                amount = int(event.ticket.ticket_price * 100)  # Access the ticket_price and Convert NPR to paisa. Ensure Events has ticket_price
+
+                payload = {
+                    "return_url": request.build_absolute_uri(reverse("khalti_payment_callback")),
+                    "website_url": "https://yourwebsite.com/",
+                    "amount": amount,
+                    "purchase_order_id": f"order_{event.id}",
+                    "purchase_order_name": event.title,  
+                }
+
+                headers = {
+                    "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
+                    "Content-Type": "application/json"
+                }
+
+                # Debugging: Print request data before sending it
+                logger.info(f"Initiating Khalti Payment with: {payload}")
+                logger.info(f"Using Secret Key: {settings.KHALTI_SECRET_KEY}")
+
+                response = requests.post(settings.KHALTI_INITIATE_URL, json=payload, headers=headers)
+
+                # Debugging: Print response
+                logger.info(f"Khalti Response Status: {response.status_code}")
+                logger.info(f"Khalti Response Data: {response.text}")
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return Response({"payment_url": data["payment_url"]}, status=status.HTTP_200_OK)  # Return the payment URL
+                else:
+                    return Response({"error": "Payment initiation failed", "details": response.text}, status=response.status_code)
+
+            except Events.DoesNotExist:
+                return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class KhaltiVerifyAPIView(APIView):
+    """
+    Verifies a Khalti payment.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = KhaltiVerifySerializer(data=request.data)
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            amount = serializer.validated_data['amount']
+
+            headers = {
+                "Authorization": f"Key {settings.KHALTI_SECRET_KEY}"
+            }
+
+            data = {
+                "token": token,
+                "amount": amount
+            }
+
+            response = requests.post(settings.KHALTI_VERIFY_URL, data=data, headers=headers)
+
+            if response.status_code == 200:
+                return Response({"status": "success", "message": "Payment verified!"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "failure", "message": "Verification failed", "details": response.json()}, status=response.status_code)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# class KhaltiPaymentCallbackAPIView(APIView): # Implement this in django style
+#     """
+#     Handles the Khalti payment callback.
+#     """
+#     permission_classes = [AllowAny]
+#
+#     def get(self, request):
+#         logger = logging.getLogger(__name__)
+#         pidx = request.GET.get("pidx")
+#         amount = request.GET.get("amount")
+#
+#         if not pidx or not amount:
+#             return Response({"error": "Invalid payment request. Missing pidx or amount."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}"}
+#         verify_url = "https://a.khalti.com/api/v2/epayment/lookup/"
+#         verify_payload = {"pidx": pidx}
+#
+#         logger.info(f"Sending verification request to Khalti with: {verify_payload}")
+#         verify_response = requests.post(verify_url, json=verify_payload, headers=headers)
+#
+#         if verify_response.status_code == 200:
+#             verify_data = verify_response.json()
+#             logger.info(f"Khalti Verification Response: {verify_data}")
+#
+#             if verify_data.get("status") == "Completed":
+#                 return Response({"status": "success", "message": "Payment Successful! Thank you for your purchase."}, status=status.HTTP_200_OK)
+#
+#         return Response({"status": "failure", "message": "Payment verification failed. Please contact support."}, status=status.HTTP_400_BAD_REQUEST)
+
