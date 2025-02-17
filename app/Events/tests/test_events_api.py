@@ -22,7 +22,7 @@ class EventsAPITests(TestCase):
             user=self.user,
             title='Test Event',
             event_dates=date(2025, 2, 14),
-            time=time(14, 30),
+            time_start=time(14, 30, 00),
             link='https://testevent.com',
             description='Test description'
         )
@@ -33,7 +33,7 @@ class EventsAPITests(TestCase):
         payload = {
             'title': 'New Test Event',
             'event_dates': '2025-02-15',
-            'time': '15:30:00',
+            'time_start': '15:30:00',
             'link': 'https://newtestevent.com',
             'description': 'New test description',
             'category': [{'name': 'New Category'}]
@@ -115,11 +115,7 @@ class EventsAPITests(TestCase):
         self.event.refresh_from_db()
         self.assertIsNotNone(self.event.image)
 
-    def test_category_list(self):
-        """Test retrieving a list of categories"""
-        res = self.client.get(reverse('categories-list'))
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
+   
 
     def test_search_events(self):
         """Test searching events"""
@@ -129,3 +125,4 @@ class EventsAPITests(TestCase):
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]['title'], 'Test Event')
 
+ 

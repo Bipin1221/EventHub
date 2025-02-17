@@ -58,12 +58,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Category(models.Model):
-    """Category for filtering events."""
-    name = models.CharField(max_length=255)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, unique=True)  # Keep unique constraint
     
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip().lower()  # Normalize before save
+        super().save(*args, **kwargs)
+
 
 
 class Events(models.Model):

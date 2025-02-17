@@ -6,10 +6,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.settings import api_settings
-
+from rest_framework.exceptions import AuthenticationFailed
 from django.core.mail import send_mail
 from django.conf import settings
-
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from user.serializers import UserSerializer, AuthTokenSerializer, VerifyTokenSerializer
 from django.contrib.auth import get_user_model
 
@@ -45,25 +46,34 @@ class CreateTokenView(APIView):
         return Response({"message": "Token sent to your email."}, status=200)
 
 
+from user.serializers import VerifyTokenSerializer
+from rest_framework.authtoken.models import Token
+
 class VerifyTokenView(APIView):
-    """Verify authentication token."""
+    """Verify authentication token and authenticate the user."""
     serializer_class = VerifyTokenSerializer
+   
+
 
     def post(self, request, *args, **kwargs):
         serializer = VerifyTokenSerializer(data=request.data)
 
         if serializer.is_valid():
             token_key = serializer.validated_data["token"]
-            token = Token.objects.get(key=token_key)
+            
+            try:
+                # Verify the token exists
+                token = Token.objects.get(key=token_key)
+            except Token.DoesNotExist:
+                raise AuthenticationFailed("Invalid token.")
 
+            # Return a success response with the user's ID
             return Response(
                 {"message": "Token is valid.", "user_id": token.user.id},
                 status=status.HTTP_200_OK
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class ManageUserView(generics.RetrieveUpdateAPIView):
     """Manage the authenticated user."""
     serializer_class = UserSerializer

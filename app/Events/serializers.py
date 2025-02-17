@@ -6,9 +6,12 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name']
         read_only_fields = ['id']
-
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(many=True, required=False)
+    category = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        write_only=True
+    )
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
 
@@ -21,28 +24,25 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
     def create(self, validated_data):
-        categories = validated_data.pop('category', [])
+        category_names = validated_data.pop('category', [])
         event = Events.objects.create(
             user=self.context['request'].user,
             **validated_data
         )
-        self._handle_categories(categories, event)
+        self._handle_categories(category_names, event)
         return event
 
     def update(self, instance, validated_data):
-        categories = validated_data.pop('category', None)
-        if categories is not None:
+        category_names = validated_data.pop('category', None)
+        if category_names is not None:
             instance.category.clear()
-            self._handle_categories(categories, instance)
+            self._handle_categories(category_names, instance)
         return super().update(instance, validated_data)
 
-    def _handle_categories(self, categories, event):
-        auth_user = self.context['request'].user
-        for cat_data in categories:
-            cat, _ = Category.objects.get_or_create(
-                user=auth_user,
-                **cat_data
-            )
+    def _handle_categories(self, category_names, event):
+        for name in category_names:
+            normalized_name = name.strip().lower()
+            cat, _ = Category.objects.get_or_create(name=normalized_name)
             event.category.add(cat)
 
 class EventListSerializer(serializers.ModelSerializer):

@@ -52,7 +52,7 @@ class ModelTests(TestCase):
             title="Sample Event",
             created_at='2025-02-12',
             event_dates='2025-04-03',
-            time="00:00:00",
+            time_start="00:00:00",
             description='Sample event description',
         )
         self.assertEqual(str(event), event.title)
@@ -72,7 +72,7 @@ class ModelTests(TestCase):
             title="Music Festival",
             created_at='2025-02-12',
             event_dates='2025-04-03',
-            time="00:00:00",
+            time_start="00:00:00",
             description='Live music event',
         )
         event.category.add(category)

@@ -7,12 +7,12 @@ from unittest.mock import patch
 from rest_framework.authtoken.models import Token
 
 # Assuming you have a user create URL
-CREATE_USER_URL = reverse('user:create')
+CREATE_USER_URL = reverse('user:sign-up')
 # Assuming you have a login URL
-TOKEN_URL = reverse('user:token')
+TOKEN_URL = reverse('user:login')
 # Assuming you have a manage user URL
-ME_URL = reverse('user:me')
-VERIFY_TOKEN_URL = reverse('user:verify-token')  # Replace with your actual URL name
+ME_URL = reverse('user:profile')
+VERIFY_TOKEN_URL = reverse('user:verify-login')  # Replace with your actual URL name
 
 
 def create_user(**params):
