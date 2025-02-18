@@ -49,11 +49,14 @@ class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
-
+    interest_count = serializers.SerializerMethodField()
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time_start', 'link', 'category']
+        fields = ['id', 'title', 'event_dates', 'time_start', 'link', 'category', 'interest_count']
 
+
+    def get_interest_count(self, obj):
+        return obj.interests.count()
 class EventDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     comments = serializers.SerializerMethodField()

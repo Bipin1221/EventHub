@@ -46,8 +46,7 @@ class CreateTokenView(APIView):
         return Response({"message": "Token sent to your email."}, status=200)
 
 
-from user.serializers import VerifyTokenSerializer
-from rest_framework.authtoken.models import Token
+  
 
 class VerifyTokenView(APIView):
     """Verify authentication token and authenticate the user."""
@@ -69,9 +68,17 @@ class VerifyTokenView(APIView):
 
             # Return a success response with the user's ID
             return Response(
-                {"message": "Token is valid.", "user_id": token.user.id},
+                {
+                    "message": "Token is valid.", 
+                    "user_id": token.user.id,
+                    "success": True,
+                    "Is_Authenticated": True  # Added authenticated status
+                },
                 status=status.HTTP_200_OK
             )
+            
+            
+            
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class ManageUserView(generics.RetrieveUpdateAPIView):
