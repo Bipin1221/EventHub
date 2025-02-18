@@ -10,6 +10,15 @@ from django.contrib.auth.models import (
 )
 from django.conf import settings
 from django.utils import timezone
+import uuid
+from django.db import models
+from django.conf import settings
+from Events.utils import generate_qr_code
+
+import qrcode
+from io import BytesIO
+from django.core.files.base import ContentFile
+
 
 
 def event_image_file_path(instance, filename):
@@ -122,3 +131,46 @@ class Rating(models.Model):
     
     class Meta:
         unique_together = ('user', 'event')  # Prevent duplicate ratings
+
+
+
+
+class Ticket(models.Model):
+    TICKET_TYPES = [
+        ('VIP', 'VIP'),
+        ('COMMON', 'Common')
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='tickets',null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tickets')
+    ticket_type = models.CharField(max_length=10, choices=TICKET_TYPES, default='COMMON')
+    quantity = models.PositiveIntegerField(default=1)  # Add quantity field
+    purchased_at = models.DateTimeField(default=timezone.now)
+    qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    validated_count = models.PositiveIntegerField(default=0)
+
+    def is_fully_validated(self):
+        return self.validated_count >= self.quantity
+    # Remove the unique_together constraint
+    # class Meta:
+    #     unique_together = ('event', 'user')
+
+    def __str__(self):
+        return f"{self.quantity}x {self.ticket_type} tickets for {self.user} - {self.event.title}"
+    
+    def save(self, *args, **kwargs):
+        """Generate QR code without file system dependency"""
+        if not self.qr_code:
+            qr_img = qrcode.make(f"TICKET:{self.id}")
+            buffer = BytesIO()
+            qr_img.save(buffer, format='PNG')
+            buffer.seek(0)
+            
+            self.qr_code.save(
+                f"qr_{self.id}.png",
+                ContentFile(buffer.getvalue()),
+                save=False
+            )
+        super().save(*args, **kwargs)

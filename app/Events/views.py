@@ -1,4 +1,4 @@
-from rest_framework import viewsets, mixins, status, generics
+from rest_framework import viewsets, mixins, status, generics,filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny,BasePermission
@@ -6,8 +6,9 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from .utils import send_ticket_email
 from  core.models import Events
-from core.models import Events, Category, Interest, Comment, Rating
+from core.models import Events, Category, Interest, Rating,Ticket
 from .serializers import (
     EventCreateUpdateSerializer,
     EventListSerializer,
@@ -18,10 +19,24 @@ from .serializers import (
     RatingSerializer,
     InterestSerializer,
     EventImageSerializer,
-    CategorySerializer
+    CategorySerializer,
+    TicketSerializer
 )
-from rest_framework import filters
+import logging
+logger = logging.getLogger(__name__)
+from django.utils import timezone
+from rest_framework.views import APIView
+from io import BytesIO
 from django_filters.rest_framework import DjangoFilterBackend
+
+
+from .utils import send_ticket_email
+
+from django.shortcuts import get_object_or_404
+
+from .serializers import TicketSerializer
+
+
 class IsOrganizer(BasePermission):
     def has_permission(self, request, view):
         return request.user.role == 'organizer'
@@ -132,4 +147,80 @@ class InterestCreateAPIView(generics.CreateAPIView):
         serializer.save(user=self.request.user, event=event)
        
    
-   
+class TicketPurchaseAPIView(generics.CreateAPIView):
+    serializer_class = TicketSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        event = get_object_or_404(Events, pk=self.kwargs['pk'])
+        
+        if self.request.user.role != 'attendee':
+            raise PermissionDenied("Only attendees can purchase tickets.")
+
+        try:
+            ticket = serializer.save(user=self.request.user, event=event)
+            send_ticket_email(ticket)
+        except Exception as e:
+            logger.error(f"Ticket purchase failed: {str(e)}")
+            raise ValidationError("Ticket purchase failed. Please try again.")
+
+
+
+class TicketValidationAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request, ticket_id):
+        try:
+            ticket = Ticket.objects.select_related('user', 'event').get(id=ticket_id)
+            
+            if request.user.role != 'organizer':
+                raise PermissionDenied("Only organizers can validate tickets")
+
+            if not ticket.event.user == request.user:
+                raise PermissionDenied("You don't own this event")
+
+            if ticket.validated_count >= ticket.quantity:
+                return Response({"error": "All tickets in this purchase have been validated"}, status=status.HTTP_400_BAD_REQUEST)
+
+            ticket.validated_count += 1
+            ticket.save()
+
+            validation_data = {
+                "valid": True,
+                "event": ticket.event.title,
+                "ticket_type": ticket.ticket_type,
+                "quantity": ticket.quantity,
+                "validated_count": ticket.validated_count,
+                "attendee": ticket.user.email,
+                "purchased_at": ticket.purchased_at,
+                "validation_time": timezone.now()
+            }
+
+            return Response(validation_data, status=status.HTTP_200_OK)
+
+        except Ticket.DoesNotExist:
+            return Response({"error": "Invalid ticket ID"}, status=status.HTTP_404_NOT_FOUND)
+        
+    # def get(self, request, ticket_id):
+    #     ticket = get_object_or_404(Ticket, id=ticket_id)
+        
+    #     # Track how many times the ticket has been validated
+    #     if ticket.validated_count < ticket.quantity:
+    #         ticket.validated_count += 1
+    #         ticket.save()
+    #     else:
+    #         return Response({"error": "All tickets validated"}, status=400)
+        
+    #     return Response({"validated_count": ticket.validated_count})
+class UserTicketsAPIView(generics.ListAPIView):
+    serializer_class = TicketSerializer
+    permission_classes = [IsAuthenticated]
+
+    
+    def get_queryset(self):
+        if self.request.user.role == 'organizer':
+            raise PermissionDenied(" organizers can't see the  tickets")
+        
+        else:
+            return Ticket.objects.filter(user=self.request.user).select_related('event')
