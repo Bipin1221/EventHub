@@ -119,16 +119,17 @@ class EventImageSerializer(serializers.ModelSerializer):
         model = EventImage
         fields = ['id', 'image', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+
+
 class TicketSerializer(serializers.ModelSerializer):
-    title = serializers.CharField(source='event.title', read_only=True)
-    user = serializers.StringRelatedField(source='event.user.name', read_only=True)
+    event_title = serializers.CharField(source='event.title', read_only=True)
+    user_email = serializers.StringRelatedField(source='event.user.email', read_only=True)
+
     class Meta:
         model = Ticket
-        fields = ['id','qr_code','user','title','ticket_type', 'quantity']  # Ensure quantity is included
-        read_only_fields = ['id', 'user','title','qr_code']
-    def validate_quantity(self, value):
-        if value < 1:
-            raise ValidationError("Quantity must be at least 1.")
-        return value
-    
- 
+        fields = [
+            'id', 'event_title', 'user_email', 
+            'ticket_type', 'qr_code', 'quantity',
+        ]
+        read_only_fields = ['id', 'qr_code']
+        write_only_fields = ['quantity']

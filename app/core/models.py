@@ -134,43 +134,33 @@ class Rating(models.Model):
 
 
 
-
 class Ticket(models.Model):
+    VIP = 'VIP'
+    COMMON = 'COMMON'
     TICKET_TYPES = [
-        ('VIP', 'VIP'),
-        ('COMMON', 'Common')
+        (VIP, 'VIP'),
+        (COMMON, 'Common')
     ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='tickets',null=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tickets')
-    ticket_type = models.CharField(max_length=10, choices=TICKET_TYPES, default='COMMON')
-    quantity = models.PositiveIntegerField(default=1)  # Add quantity field
-    purchased_at = models.DateTimeField(default=timezone.now)
-    qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
+    validated_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
-    validated_count = models.PositiveIntegerField(default=0)
-
-    def is_fully_validated(self):
-        return self.validated_count >= self.quantity
-    # Remove the unique_together constraint
-    # class Meta:
-    #     unique_together = ('event', 'user')
-
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey('Events', on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    ticket_type = models.CharField(max_length=10, choices=TICKET_TYPES, default=COMMON)
+    purchased_at = models.DateTimeField(default=timezone.now)
+    qr_code = models.ImageField(upload_to='qr_codes/', blank=True)
+    quantity = models.IntegerField(default=1)
     def __str__(self):
-        return f"{self.quantity}x {self.ticket_type} tickets for {self.user} - {self.event.title}"
-    
+        return f"{self.ticket_type} Ticket - {self.event.title}"
+
+    def generate_qr_code(self):
+        qr_data = f"TICKET:{self.id}"
+        qr_img = qrcode.make(qr_data)
+        buffer = BytesIO()
+        qr_img.save(buffer, format='PNG')
+        self.qr_code.save(f'qr_{self.id}.png', ContentFile(buffer.getvalue()), save=False)
+
     def save(self, *args, **kwargs):
-        """Generate QR code without file system dependency"""
         if not self.qr_code:
-            qr_img = qrcode.make(f"TICKET:{self.id}")
-            buffer = BytesIO()
-            qr_img.save(buffer, format='PNG')
-            buffer.seek(0)
-            
-            self.qr_code.save(
-                f"qr_{self.id}.png",
-                ContentFile(buffer.getvalue()),
-                save=False
-            )
+            self.generate_qr_code()
         super().save(*args, **kwargs)
