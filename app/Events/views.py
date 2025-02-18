@@ -67,16 +67,22 @@ class EventImageUploadAPIView(generics.GenericAPIView):
         # Return the image URL in the response
         return Response({'image_url': event.image.url}, status=status.HTTP_200_OK)
 
-class CategoryViewSet(mixins.ListModelMixin,
-                     mixins.UpdateModelMixin,
-                     mixins.DestroyModelMixin,
-                     viewsets.GenericViewSet):
-    serializer_class = CategorySerializer
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, IsOrganizer]
+# class CategoryViewSet(mixins.ListModelMixin,
+#                      mixins.UpdateModelMixin,
+#                      mixins.DestroyModelMixin,
+#                      viewsets.GenericViewSet):
+#     serializer_class = CategorySerializer
+#     authentication_classes = [TokenAuthentication]
+#     permission_classes = [IsAuthenticated, IsOrganizer]
     
-    def get_queryset(self):
-        return Category.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return Category.objects.filter(user=self.request.user)
+
+class PublicCategoryListView(generics.ListAPIView):
+    serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
+    queryset = Category.objects.all()
+
 
 class PublicEventsListView(generics.ListAPIView):
     serializer_class = PublicEventsSerializer

@@ -15,7 +15,11 @@ class TicketSerializer(serializers.ModelSerializer):
 
 
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(many=True, required=False)
+    category = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        write_only=True
+    )
     ticket= TicketSerializer(many=True, required=False)
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
@@ -42,20 +46,18 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         return event
 
     def update(self, instance, validated_data):
-        categories = validated_data.pop('category', None)
-        if categories is not None:
+        category_names = validated_data.pop('category', None)
+        if category_names is not None:
             instance.category.clear()
-            self._handle_categories(categories, instance)
+            self._handle_categories(category_names, instance)
         return super().update(instance, validated_data)
 
-    def _handle_categories(self, categories, event):
-        auth_user = self.context['request'].user
-        for cat_data in categories:
-            cat, _ = Category.objects.get_or_create(
-                user=auth_user,
-                **cat_data
-            )
+    def _handle_categories(self, category_names, event):
+        for name in category_names:
+            normalized_name = name.strip().lower()
+            cat, _ = Category.objects.get_or_create(name=normalized_name)
             event.category.add(cat)
+
 
 class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
