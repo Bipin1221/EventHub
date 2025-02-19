@@ -23,58 +23,80 @@ def generate_qr_code(ticket):
     qr.save(buffer, format="PNG")
     buffer.seek(0)
     return ContentFile(buffer.getvalue(), f"qr_{ticket.id}.png")
-from io import BytesIO
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.utils import ImageReader
-from PIL import Image
 
 def generate_ticket_pdf(tickets):
-    """Generate a well-structured ticket PDF with event images and sponsor logos."""
+    """Generate a well-structured ticket PDF with proper alignment and spacing."""
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
+    page_width, page_height = letter
+    margin = 72  # 1 inch margins
     
     for ticket in tickets:
-        # Draw the header
+        # Configure layout parameters
+        content_width = page_width - 2*margin
+        y_position = page_height - margin  # Start from top margin
+        
+        # Draw Header Section
         p.setFont("Helvetica-Bold", 20)
-        p.drawString(100, 750, ticket.event.user.name)
-        p.setFont("Helvetica", 10)
-        p.drawString(100, 735, "Present this entire page at the Venue")
+        p.drawString(margin, y_position, ticket.event.user.name)
+        p.setFont("Helvetica", 12)
+        y_position -= 25
+        p.drawString(margin, y_position, "Present this entire page at the Venue")
+        y_position -= 40  # Space after header
+
+        # Two-column layout setup
+        col_width = content_width / 2 - 20
+        details_x = margin
+        qr_x = margin + col_width + 40
 
         
-        # Draw Event Details
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(100, 650, ticket.event.title)
-        
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(details_x, y_position, ticket.event.title)
+        y_position -= 30
+
+        # Event Details (Left Column) - FIXED DATE FORMATTING
         p.setFont("Helvetica", 12)
         details = [
-            f"Date: {ticket.event.event_dates}",
-            f"Time: {ticket.event.time_start.strftime('%I:%M %p')}",
-            f"Venue: {ticket.event.venue_name}",
-            f"Ticket Type: {ticket.ticket_type}",
-            f"Purchased By: {ticket.user.email}",
-            f"Purchase Date: {ticket.purchased_at.strftime('%Y-%m-%d %H:%M')}",
-            f"Ticket ID: {ticket.id}",
+            ("Date:", ticket.event.event_dates.strftime('%Y-%m-%d')),  # Format date
+            ("Time:", ticket.event.time_start.strftime('%I:%M %p')),
+            ("Venue:", ticket.event.venue_name),
+            ("Ticket Type:", ticket.ticket_type),
+            ("Purchased By: ", ticket.user.email),
+            ("Purchase Date: ", ticket.purchased_at.strftime('%Y-%m-%d %H:%M')),  # Format datetime
+            ("Ticket ID:", str(ticket.id)),  # Ensure ID is string
         ]
 
-        y_position = 620
-        for line in details:
-            p.drawString(100, y_position, line)
-            y_position -= 20
+        detail_y = y_position
+        for label, value in details:
+            p.setFont("Helvetica-Bold", 12)
+            p.drawString(details_x, detail_y, label)
+            p.setFont("Helvetica", 12)
+            p.drawString(details_x + 120, detail_y, str(value))  # Explicit string conversion
+            detail_y -= 25  # Line spacing
 
-       
         if ticket.qr_code:
             try:
+                qr_size = 150
                 qr_image = Image.open(ticket.qr_code.path)
-                qr_image = qr_image.resize((120, 120))
-               
-
-                p.drawInlineImage(qr_image, 400, 600, width=120, height=120)
+                qr_image = qr_image.resize((qr_size, qr_size))
+                
+                p.drawInlineImage(qr_image, qr_x, y_position - 50, 
+                                width=qr_size, height=qr_size)
             except Exception as e:
-                p.drawString(400, 580, f"QR Code Error: {str(e)}")
+                p.setFont("Helvetica", 10)
+                p.drawString(qr_x, y_position, f"QR Code Error: {str(e)}")
 
-        p.showPage()  # Move to next page for the next ticket
-    
+        # Visual Separator
+        separator_y = detail_y - 30
+        p.line(margin, separator_y, page_width - margin, separator_y)
+
+        # Footer Notice
+        p.setFont("Helvetica-Oblique", 10)
+        footer_text = "Valid ID required for entry • No refunds or exchanges • Ticket valid only for purchased event"
+        p.drawCentredString(page_width/2, 40, footer_text)
+
+        p.showPage()
+
     p.save()
     buffer.seek(0)
     return buffer.getvalue()

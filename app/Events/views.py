@@ -207,10 +207,15 @@ class TicketValidationAPIView(APIView):
                 "status": "validated",
                 "ticket_id": str(ticket.id),
                 "event": ticket.event.title,
-                "attendee": ticket.user.email
+                "attendee": ticket.user.email,
+                "ticeket_used": ticket.delete()
             },
             status=status.HTTP_200_OK
+            
+        
         )
+       
+        
 
 class UserTicketsAPIView(generics.ListAPIView):
     serializer_class = TicketSerializer
