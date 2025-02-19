@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Events, Category, Interest, Comment, Rating, EventImage, Ticket
+from core.models import Events, Category, Interest, Comment, Rating, Ticket
 from rest_framework.exceptions import ValidationError
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -18,13 +18,13 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField()
-   
+    # image = serializers.ImageField(required=False)
 
     class Meta:
         model = Events
         fields = ['id', 'title', 'event_dates', 'time_start',
                   'venue_name', 'venue_location', 'venue_capacity', 
-                   'description', 'category','vip_price','common_price','user'
+                   'description', 'category','vip_price','common_price','user','image'
                   ]
         read_only_fields = ['id']
 
@@ -119,11 +119,11 @@ class InterestSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
 
-class EventImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EventImage
-        fields = ['id', 'image', 'uploaded_at']
-        read_only_fields = ['id', 'uploaded_at']
+# class EventImageSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = EventImage
+#         fields = ['id', 'image', 'uploaded_at']
+#         read_only_fields = ['id', 'uploaded_at']
 
 
 class TicketSerializer(serializers.ModelSerializer):

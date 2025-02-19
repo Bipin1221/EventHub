@@ -15,6 +15,7 @@ from user.serializers import UserSerializer, AuthTokenSerializer, VerifyTokenSer
 from django.contrib.auth import get_user_model
 
 
+
 class CreateUserView(generics.CreateAPIView):
     """Create a new user in the system."""
     serializer_class = UserSerializer
@@ -26,14 +27,14 @@ class CreateTokenView(APIView):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(
-            data=request.data, context={"request": request})
+        serializer = self.serializer_class(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
-
+        
         Token.objects.filter(user=user).delete()
         new_token = Token.objects.create(user=user)
+
 
         # Send the token to the user's email
         send_mail(
@@ -43,44 +44,41 @@ class CreateTokenView(APIView):
             recipient_list=[user.email],
             fail_silently=False,
         )
-        return Response({"message": "Token sent to your email."}, status=200)
-
-
-  
+        return Response({"message": "Token sent to your email.",
+                         "token":new_token.key,
+                         "role":user.role,
+                         "email":user.email,
+                         "name":user.name,
+                         "isLoggedIn": True
+                        
+                         }, status=200)
+        
 
 class VerifyTokenView(APIView):
-    """Verify authentication token and authenticate the user."""
+    """Verify authentication token."""
     serializer_class = VerifyTokenSerializer
-   
-
-
     def post(self, request, *args, **kwargs):
         serializer = VerifyTokenSerializer(data=request.data)
-
+        
         if serializer.is_valid():
             token_key = serializer.validated_data["token"]
+            token = Token.objects.get(key=token_key)
             
-            try:
-                # Verify the token exists
-                token = Token.objects.get(key=token_key)
-            except Token.DoesNotExist:
-                raise AuthenticationFailed("Invalid token.")
-
-            # Return a success response with the user's ID
             return Response(
-                {
-                    "message": "Token is valid.", 
-                    "user_id": token.user.id,
-                    "success": True,
-                    "Is_Authenticated": True  # Added authenticated status
-                },
+                {"message": "Token is valid.",
+                  "user_id": token.user.id,
+                 "role": token.user.role,
+                 "email":  token.user.email,
+                 "name": token.user.name,
+                 "token":token_key,
+                 "isLoggedIn": True
+                 }, 
                 status=status.HTTP_200_OK
             )
-            
-            
-            
-
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class ManageUserView(generics.RetrieveUpdateAPIView):
     """Manage the authenticated user."""
     serializer_class = UserSerializer

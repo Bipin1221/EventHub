@@ -19,7 +19,7 @@ from .serializers import (
     CommentSerializer,
     RatingSerializer,
     InterestSerializer,
-    EventImageSerializer,
+  
     CategorySerializer,
     TicketSerializer
 )
@@ -61,27 +61,27 @@ class EventsViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(user=self.request.user)\
                    .prefetch_related('category')\
                    .order_by('-created_at')
-class EventImageUploadAPIView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
-    serializer_class = EventImageSerializer
-    def post(self, request, pk=None):
-        event = get_object_or_404(Events, pk=pk)  # Get the event instance
+# class EventImageUploadAPIView(generics.GenericAPIView):
+#     permission_classes = [IsAuthenticated]
+#     authentication_classes = [TokenAuthentication]
+#     serializer_class = EventImageSerializer
+#     def post(self, request, pk=None):
+#         event = get_object_or_404(Events, pk=pk)  # Get the event instance
 
        
-        if self.request.user.role != 'organizer':
-            raise PermissionDenied("Only organizer can upload images")
+#         if self.request.user.role != 'organizer':
+#             raise PermissionDenied("Only organizer can upload images")
 
-        # Check if the image is in the request files
-        if 'image' not in request.FILES:
-            raise ValidationError("No image provided")
+#         # Check if the image is in the request files
+#         if 'image' not in request.FILES:
+#             raise ValidationError("No image provided")
 
-        # Save the image to the event
-        event.image = request.FILES['image']
-        event.save()
+#         # Save the image to the event
+#         event.image = request.FILES['image']
+#         event.save()
 
-        # Return the image URL in the response
-        return Response({'image_url': event.image.url}, status=status.HTTP_200_OK)
+#         # Return the image URL in the response
+#         return Response({'image_url': event.image.url}, status=status.HTTP_200_OK)
 
 # class CategoryViewSet(mixins.ListModelMixin,
 #                      viewsets.GenericViewSet):

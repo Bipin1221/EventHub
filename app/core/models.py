@@ -98,11 +98,11 @@ class Events(models.Model):
         return self.title
 
 
-class EventImage(models.Model):
-    """Model to store multiple images for an event."""
-    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='event_images')
-    image = models.ImageField(upload_to='event_images/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+# class EventImage(models.Model):
+#     """Model to store multiple images for an event."""
+#     event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='event_images')
+#     image = models.ImageField(upload_to='event_images/')
+#     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 
 class Interest(models.Model):
