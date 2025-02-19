@@ -1,8 +1,12 @@
 *.log
 *.pot
 *.pyc
-.env
+
 __pycache__
 venv/
 uploads
 **/staticfiles
+# .gitignore
+.env
+*.env
+.env.local

@@ -8,4 +8,5 @@ django-cors-headers
 django-filter
 qrcode 
 reportlab
+python-dotenv
 
