@@ -30,8 +30,12 @@ services:
       - DB_NAME=devdb
       - DB_USER=devuser
       - DB_PASS=changeme
+    env_file:
+      - .env
     depends_on:
       - db
+
+
    
 
 volumes:
