@@ -1,0 +1,14 @@
+
+
+*.log
+*.pot
+*.pyc
+
+__pycache__
+venv/
+uploads
+**/staticfiles
+# .gitignore
+.env
+*.env
+.env.local
