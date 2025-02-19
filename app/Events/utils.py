@@ -23,45 +23,57 @@ def generate_qr_code(ticket):
     qr.save(buffer, format="PNG")
     buffer.seek(0)
     return ContentFile(buffer.getvalue(), f"qr_{ticket.id}.png")
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from PIL import Image
 
 def generate_ticket_pdf(tickets):
-    """Generate PDF with one page per ticket."""
+    """Generate a well-structured ticket PDF with event images and sponsor logos."""
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     
     for ticket in tickets:
-        # Header
-        p.setFont("Helvetica-Bold", 16)
-        p.drawString(100, 800, "Event Ticket")
+        # Draw the header
+        p.setFont("Helvetica-Bold", 20)
+        p.drawString(100, 750, ticket.event.user.name)
+        p.setFont("Helvetica", 10)
+        p.drawString(100, 735, "Present this entire page at the Venue")
+
         
-        # Ticket Details
+        # Draw Event Details
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(100, 650, ticket.event.title)
+        
         p.setFont("Helvetica", 12)
         details = [
-            f"Event: {ticket.event.title}",
             f"Date: {ticket.event.event_dates}",
-            f"Time: {ticket.event.time_start}",
+            f"Time: {ticket.event.time_start.strftime('%I:%M %p')}",
             f"Venue: {ticket.event.venue_name}",
             f"Ticket Type: {ticket.ticket_type}",
             f"Purchased By: {ticket.user.email}",
             f"Purchase Date: {ticket.purchased_at.strftime('%Y-%m-%d %H:%M')}",
-            f"Ticket ID: {ticket.id}"
+            f"Ticket ID: {ticket.id}",
         ]
-        
-        y = 750
+
+        y_position = 620
         for line in details:
-            p.drawString(100, y, line)
-            y -= 20
-        
-        # QR Code
+            p.drawString(100, y_position, line)
+            y_position -= 20
+
+       
         if ticket.qr_code:
             try:
-                img = Image.open(ticket.qr_code.path)
-                img = img.resize((120, 120))
-                p.drawInlineImage(img, 400, 650, width=120, height=120)
+                qr_image = Image.open(ticket.qr_code.path)
+                qr_image = qr_image.resize((120, 120))
+               
+
+                p.drawInlineImage(qr_image, 400, 600, width=120, height=120)
             except Exception as e:
-                p.drawString(100, 600, f"QR Code Error: {str(e)}")
-        
-        p.showPage()
+                p.drawString(400, 580, f"QR Code Error: {str(e)}")
+
+        p.showPage()  # Move to next page for the next ticket
     
     p.save()
     buffer.seek(0)

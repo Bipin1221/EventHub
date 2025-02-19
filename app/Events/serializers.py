@@ -124,12 +124,12 @@ class EventImageSerializer(serializers.ModelSerializer):
 class TicketSerializer(serializers.ModelSerializer):
     event_title = serializers.CharField(source='event.title', read_only=True)
     user_email = serializers.StringRelatedField(source='event.user.email', read_only=True)
-
+    image = serializers.ImageField(source='event.image', read_only=True)
     class Meta:
         model = Ticket
         fields = [
             'id', 'event_title', 'user_email', 
-            'ticket_type', 'qr_code', 'quantity',
+            'ticket_type', 'qr_code', 'quantity','image'
         ]
         read_only_fields = ['id', 'qr_code']
         write_only_fields = ['quantity']
