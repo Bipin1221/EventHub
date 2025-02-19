@@ -18,7 +18,7 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField()
-    # image = serializers.ImageField(required=False)
+    image = serializers.ImageField(required = False)
 
     class Meta:
         model = Events
@@ -55,9 +55,10 @@ class EventListSerializer(serializers.ModelSerializer):
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
     interest_count = serializers.SerializerMethodField()
+    image = serializers.ImageField(required = False)
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time_start', 'category', 'interest_count']
+        fields = ['id', 'title', 'event_dates', 'time_start', 'category', 'interest_count','image']
 
     def get_interest_count(self, obj):
         return obj.interests.count()

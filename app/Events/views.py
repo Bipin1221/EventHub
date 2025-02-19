@@ -42,7 +42,12 @@ class IsOrganizer(BasePermission):
     def has_permission(self, request, view):
         return request.user.role == 'organizer'
 
+
+
+# from rest_framework.parsers import MultiPartParser, FormParser
+
 class EventsViewSet(viewsets.ModelViewSet):
+    # parser_classes = (MultiPartParser, FormParser)
     queryset = Events.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsOrganizer]

@@ -17,7 +17,7 @@ urlpatterns = [
     path('<int:pk>/purchase-ticket/', views.TicketPurchaseAPIView.as_view(), name='purchase-ticket'),
     path('validate-ticket/<uuid:ticket_id>/', views.TicketValidationAPIView.as_view(), name='validate-ticket'),
     path('my-tickets/', views.UserTicketsAPIView.as_view(), name='user-tickets'),
-
+   
     path('', include(router.urls)),
 ]
 
