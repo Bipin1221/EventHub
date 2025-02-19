@@ -7,6 +7,8 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name']
         read_only_fields = ['id']
+
+
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
     category = serializers.ListField(
         child=serializers.CharField(),
@@ -15,12 +17,14 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
     )
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
+    user = serializers.StringRelatedField()
+   
 
     class Meta:
         model = Events
         fields = ['id', 'title', 'event_dates', 'time_start',
                   'venue_name', 'venue_location', 'venue_capacity', 
-                  'link', 'description', 'category'
+                   'description', 'category','vip_price','common_price','user'
                   ]
         read_only_fields = ['id']
 
@@ -53,8 +57,7 @@ class EventListSerializer(serializers.ModelSerializer):
     interest_count = serializers.SerializerMethodField()
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time_start', 'link', 'category', 'interest_count']
-
+        fields = ['id', 'title', 'event_dates', 'time_start', 'category', 'interest_count']
 
     def get_interest_count(self, obj):
         return obj.interests.count()
@@ -65,13 +68,14 @@ class EventDetailSerializer(serializers.ModelSerializer):
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField(read_only=True)
+    
     class Meta:
         model = Events
         fields = [
             'id', 'title', 'event_dates', 'time_start',
-             'venue_name', 'venue_location', 'venue_capacity','link', 
+             'venue_name', 'venue_location', 'venue_capacity', 
             'description', 'image', 'category',
-              'comments', 'ratings', 'user'
+              'comments', 'ratings', 'user','vip_price','common_price'
         ]
 
     def get_comments(self, obj):
@@ -81,16 +85,17 @@ class EventDetailSerializer(serializers.ModelSerializer):
         return RatingSerializer(obj.ratings.all(), many=True).data
 
 class PublicEventsSerializer(EventListSerializer):
-    created_at = serializers.DateField(format="%Y-%m-%d")
+    
     
     class Meta(EventListSerializer.Meta):
-        fields = EventListSerializer.Meta.fields + ['created_at']
+        fields = EventListSerializer.Meta.fields
+        
 
 class PublicEventsDetailSerializer(EventDetailSerializer):
-    created_at = serializers.DateField(format="%Y-%m-%d")
+   
     
     class Meta(EventDetailSerializer.Meta):
-        fields = EventDetailSerializer.Meta.fields + ['created_at']
+        fields = EventDetailSerializer.Meta.fields 
 
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
@@ -124,12 +129,12 @@ class EventImageSerializer(serializers.ModelSerializer):
 class TicketSerializer(serializers.ModelSerializer):
     event_title = serializers.CharField(source='event.title', read_only=True)
     user_email = serializers.StringRelatedField(source='event.user.email', read_only=True)
-    image = serializers.ImageField(source='event.image', read_only=True)
+    
     class Meta:
         model = Ticket
         fields = [
             'id', 'event_title', 'user_email', 
-            'ticket_type', 'qr_code', 'quantity','image'
+            'ticket_type', 'qr_code', 'quantity',
         ]
         read_only_fields = ['id', 'qr_code']
         write_only_fields = ['quantity']
