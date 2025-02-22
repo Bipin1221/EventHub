@@ -69,7 +69,8 @@ class EventDetailSerializer(serializers.ModelSerializer):
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField(read_only=True)
-    
+    vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
+    common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     class Meta:
         model = Events
         fields = [

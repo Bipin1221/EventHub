@@ -7,15 +7,19 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-
+from django.contrib.auth.password_validation import validate_password
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the user object."""
 
     class Meta:
         model = get_user_model()
         fields = ['email', 'password', 'name', 'role']  
-        extra_kwargs = {'password': {'write_only': True, 'min_length': 8}}
-        
+        extra_kwargs = {
+            'password': {'write_only': True, 'min_length': 8}
+        #     'email':{'read_only':True},
+        #     'role':{'read_only':True},
+        }
+
     def create(self, validated_data):
         """Create and return a user with encrypted password."""
         return get_user_model().objects.create_user(**validated_data)
@@ -57,12 +61,17 @@ class AuthTokenSerializer(serializers.Serializer):
         return attrs
 
 
-class VerifyTokenSerializer(serializers.Serializer):
-    """Serializer to validate and verify authentication token."""
-    token = serializers.CharField()
 
-    def validate_token(self, value):
-        """Check if the token exists and is valid."""
-        if not Token.objects.filter(key=value).exists():
-            raise serializers.ValidationError("Invalid token.")
-        return value
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(
+        required=True,
+        write_only=True,
+        validators=[validate_password]
+    )
+    confirm_password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("New passwords must match")
+        return data
