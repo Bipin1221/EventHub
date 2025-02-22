@@ -135,5 +135,5 @@ class Ticket(models.Model):
     available_quantity = models.PositiveIntegerField(default=0)
     
     def __str__(self):
-        return self.ticket_id
+        return self.ticket_type
     

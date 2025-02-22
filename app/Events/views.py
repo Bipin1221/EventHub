@@ -6,7 +6,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from  core.models import Events
+from  core.models import Events, Ticket
 from core.models import Events, Category, Interest, Comment, Rating
 from .serializers import (
     EventCreateUpdateSerializer,
@@ -162,15 +162,18 @@ class KhaltiInitiatePaymentAPIView(APIView):
         if serializer.is_valid():
             event_id = serializer.validated_data['event_id']
             try:
-                event = get_object_or_404(Events, id=event_id)  # Use Events model instead of Product
-                amount = int(event.ticket.ticket_price * 100)  # Access the ticket_price and Convert NPR to paisa. Ensure Events has ticket_price
+                event=get_object_or_404(Events, id=event_id)
+                ticket = get_object_or_404(Ticket, event_id=event_id)  # Use Events model instead of Product
+                amount = int(ticket.ticket_price * 100)  # Access the ticket_price and Convert NPR to paisa. Ensure Events has ticket_price
 
                 payload = {
                     "return_url": request.build_absolute_uri(reverse("khalti_payment_callback")),
                     "website_url": "https://yourwebsite.com/",
                     "amount": amount,
                     "purchase_order_id": f"order_{event.id}",
-                    "purchase_order_name": event.title,  
+                    "purchase_order_name": event.title,
+                    "merchant_username": "Event Ticketing System",
+                    "merchant_extra": "merchant_extra"  
                 }
 
                 headers = {
@@ -231,33 +234,29 @@ class KhaltiVerifyAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class KhaltiPaymentCallbackAPIView(APIView): # Implement this in django style
-#     """
-#     Handles the Khalti payment callback.
-#     """
-#     permission_classes = [AllowAny]
-#
-#     def get(self, request):
-#         logger = logging.getLogger(__name__)
-#         pidx = request.GET.get("pidx")
-#         amount = request.GET.get("amount")
-#
-#         if not pidx or not amount:
-#             return Response({"error": "Invalid payment request. Missing pidx or amount."}, status=status.HTTP_400_BAD_REQUEST)
-#
-#         headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}"}
-#         verify_url = "https://a.khalti.com/api/v2/epayment/lookup/"
-#         verify_payload = {"pidx": pidx}
-#
-#         logger.info(f"Sending verification request to Khalti with: {verify_payload}")
-#         verify_response = requests.post(verify_url, json=verify_payload, headers=headers)
-#
-#         if verify_response.status_code == 200:
-#             verify_data = verify_response.json()
-#             logger.info(f"Khalti Verification Response: {verify_data}")
-#
-#             if verify_data.get("status") == "Completed":
-#                 return Response({"status": "success", "message": "Payment Successful! Thank you for your purchase."}, status=status.HTTP_200_OK)
-#
-#         return Response({"status": "failure", "message": "Payment verification failed. Please contact support."}, status=status.HTTP_400_BAD_REQUEST)
 
+class KhaltiPaymentCallbackView(APIView):
+    def get(self, request):
+        logger = logging.getLogger(__name__)
+        pidx = request.GET.get("pidx")
+        amount = request.GET.get("amount")
+
+        if not pidx or not amount:
+            return Response({"error": "Invalid payment request. Missing pidx or amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+        headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}"}
+        verify_url = "https://a.khalti.com/api/v2/epayment/lookup/"
+        verify_payload = {"pidx": pidx}
+
+        logger.info(f"Sending verification request to Khalti with: {verify_payload}")
+        verify_response = requests.post(verify_url, json=verify_payload, headers=headers)
+
+        if verify_response.status_code == 200:
+            verify_data = verify_response.json()
+            logger.info(f"Khalti Verification Response: {verify_data}")
+
+            if verify_data.get("status") == "Completed":
+                return Response({"message": "Payment Successful! Thank you for your purchase.",
+                                "amt": amount}, status=status.HTTP_200_OK)
+
+        return Response({"error": "Payment verification failed. Please contact support."}, status=status.HTTP_400_BAD_REQUEST)

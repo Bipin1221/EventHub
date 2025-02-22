@@ -28,7 +28,7 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         model = Events
         fields = ['id', 'title', 'event_dates', 'time_start',
                   'venue_name', 'venue_location', 'venue_capacity', 
-                  'link', 'description', 'category', 'ticket'
+                  'link', 'description', 'category', 'ticket',
                   ]
         read_only_fields = ['id']
 
@@ -63,12 +63,15 @@ class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
-   
+    interest_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Events
         fields = ['id', 'title', 'event_dates', 
-                  'time_start', 'link', 'category']
+                  'time_start', 'link', 'category','interest_count']
+        
+    def get_interest_count(self ,obj):
+            return obj.interests.count()
 
 class EventDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
@@ -78,13 +81,14 @@ class EventDetailSerializer(serializers.ModelSerializer):
     time_start = serializers.TimeField(format='%H:%M:%S')
     user = serializers.StringRelatedField(read_only=True)
     ticket= TicketSerializer(many=True, required=False)
+    interest_count = serializers.SerializerMethodField()
     class Meta:
         model = Events
         fields = [
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity','link', 
             'description', 'image', 'category',
-              'comments', 'ratings', 'user', 'ticket'
+              'comments', 'ratings', 'user', 'ticket','interest_count'
         ]
 
     def get_comments(self, obj):
@@ -92,6 +96,9 @@ class EventDetailSerializer(serializers.ModelSerializer):
 
     def get_ratings(self, obj):
         return RatingSerializer(obj.ratings.all(), many=True).data
+   
+    def get_interest_count(self ,obj):
+        return obj.interests.count()
 
 class PublicEventsSerializer(EventListSerializer):
     created_at = serializers.DateField(format="%Y-%m-%d")
@@ -140,8 +147,8 @@ class KhaltiInitiateSerializer(serializers.Serializer):
         fields = ['event_id']
 
 
-class KhaltiVerifySerializer(serializers.Serializer):
-    token = serializers.CharField()
-    amount = serializers.CharField()
-    class Meta:
-        fields = ['token', 'amount']
+# class KhaltiVerifySerializer(serializers.Serializer):
+#     token = serializers.CharField()
+#     amount = serializers.CharField()
+#     class Meta:
+#         fields = ['token', 'amount']
