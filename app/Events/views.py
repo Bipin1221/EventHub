@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny,BasePermission
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import Count
 from .utils import send_ticket_email
 from  core.models import Events,Ticket
 
@@ -53,7 +53,7 @@ class EventsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOrganizer]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
    
-    search_fields = ['title', 'description','category__name', 'venue_location'] 
+    search_fields = ['title','category__name', 'venue_location'] 
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -102,9 +102,9 @@ class PublicEventsListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
    
-    search_fields = ['title', 'description','category__name', 'venue_location'] 
+    search_fields = ['title','category__name', 'venue_location'] 
     def get_queryset(self):
-        return Events.objects.all()
+        return Events.objects.annotate(interest_count = Count('interests')).order_by('-interest_count','-created_at')
     
 
 class PublicCategoryListView(generics.ListAPIView):

@@ -65,6 +65,7 @@ class EventListSerializer(serializers.ModelSerializer):
 class EventDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
     comments = serializers.SerializerMethodField()
+    interested_count = serializers.SerializerMethodField()
     ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
@@ -85,6 +86,8 @@ class EventDetailSerializer(serializers.ModelSerializer):
 
     def get_ratings(self, obj):
         return RatingSerializer(obj.ratings.all(), many=True).data
+    def get_interested_count(self, obj):
+        return obj.interests.count()
 
 class PublicEventsSerializer(EventListSerializer):
     
