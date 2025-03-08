@@ -1,0 +1,14 @@
+
+django
+Djangorestframework
+psycopg2
+drf_spectacular
+pillow
+django-cors-headers
+django-filter
+qrcode 
+reportlab
+python-dotenv
+requests
+celery
+PyJWT
