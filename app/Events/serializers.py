@@ -49,6 +49,9 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
             normalized_name = name.strip().lower()
             cat, _ = Category.objects.get_or_create(name=normalized_name)
             event.category.add(cat)
+    
+    def get_interest_count(self, obj):
+        return obj.interests.count()
 
 class EventListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)

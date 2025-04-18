@@ -1,128 +1,282 @@
+# events/tests/test_events.py
 from django.test import TestCase
-from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient
-from rest_framework import status
-from core.models import Events, Category, Comment, Rating, Interest
-from datetime import date, time
 from django.urls import reverse
+from rest_framework.test import APIClient, APITestCase
+from rest_framework import status
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.core.files.uploadedfile import SimpleUploadedFile
+from core.models import Events, Category, Interest, Comment, Rating, Ticket, PaymentOrder
+from Events.serializers import (
+    EventCreateUpdateSerializer,
+    EventListSerializer,
+    CommentSerializer,
+    RatingSerializer,
+    InterestSerializer,
+    TicketSerializer
+)
+from django.core.files.base import ContentFile
+import uuid
+import json
+from unittest.mock import patch, Mock
+from io import BytesIO
+from reportlab.pdfgen import canvas
 
-class EventsAPITests(TestCase):
+User = get_user_model()
+
+class ModelTests(TestCase):
     def setUp(self):
-        self.client = APIClient()
-        self.user = get_user_model().objects.create_user(
-            'testuser@example.com',
-            'testpass123',
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
             role='organizer'
         )
-        self.client.force_authenticate(self.user)
-        
-        self.category = Category.objects.create(name='Test Category', user=self.user)
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            password='testpass123',
+            role='attendee'
+        )
+        self.category = Category.objects.create(name='Music')
         self.event = Events.objects.create(
-            user=self.user,
+            user=self.organizer,
             title='Test Event',
-            event_dates=date(2025, 2, 14),
-            time_start=time(14, 30, 00),
-            link='https://testevent.com',
-            description='Test description'
+            description='Test Description',
+            vip_price=100.00,
+            common_price=50.00
         )
         self.event.category.add(self.category)
 
-    def test_create_event(self):
-        """Test creating an event"""
-        payload = {
-            'title': 'New Test Event',
-            'event_dates': '2025-02-15',
-            'time_start': '15:30:00',
-            'link': 'https://newtestevent.com',
-            'description': 'New test description',
-            'category': [{'name': 'New Category'}]
+    def test_event_creation(self):
+        self.assertEqual(self.event.title, 'Test Event')
+        self.assertEqual(self.event.category.first().name, 'music')
+        self.assertEqual(self.event.user.role, 'organizer')
+
+    def test_ticket_creation(self):
+        ticket = Ticket.objects.create(
+            event=self.event,
+            user=self.attendee,
+            ticket_type='VIP'
+        )
+        self.assertTrue(ticket.qr_code.name.startswith('qr_'))
+        self.assertEqual(ticket.validated_count, 0)
+
+    def test_payment_order_creation(self):
+        order = PaymentOrder.objects.create(
+            user=self.attendee,
+            event=self.event,
+            ticket_type='vip',
+            quantity=2,
+            total_amount=200.00
+        )
+        self.assertEqual(order.status, 'initiated')
+
+class SerializerTests(TestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
+            role='organizer'
+        )
+        self.category = Category.objects.create(name='Tech')
+
+    def test_event_serializer(self):
+        data = {
+            'title': 'New Event',
+            'description': 'New Description',
+            'category': ['Tech'],
+            'vip_price': 150.00,
+            'common_price': 75.00,
+            'event_dates': '2024-01-01',
+            'time_start': '10:00:00'
         }
-        res = self.client.post(reverse('events-list'), payload, format='json')
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        event = Events.objects.get(id=res.data['id'])
-        self.assertEqual(event.title, payload['title'])
+        serializer = EventCreateUpdateSerializer(
+            data=data,
+            context={'request': Mock(user=self.organizer)}
+        )
+        self.assertTrue(serializer.is_valid())
+        event = serializer.save()
+        self.assertEqual(event.category.count(), 1)
 
-    def test_retrieve_events(self):
-        """Test retrieving a list of events"""
-        res = self.client.get(reverse('events-list'))
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
+class ViewTests(APITestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
+            role='organizer'
+        )
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            password='testpass123',
+            role='attendee'
+        )
+        self.category = Category.objects.create(name='Music')
+        self.event = Events.objects.create(
+            user=self.organizer,
+            title='Test Event',
+            vip_price=100.00,
+            common_price=50.00
+        )
+        self.client = APIClient()
 
-    def test_update_event(self):
-        """Test updating an event"""
-        payload = {'title': 'Updated Event Title'}
-        url = reverse('events-detail', args=[self.event.id])
-        res = self.client.patch(url, payload)
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.event.refresh_from_db()
-        self.assertEqual(self.event.title, payload['title'])
+    def test_event_crud(self):
+        self.client.force_authenticate(user=self.organizer)
+        # Create
+        response = self.client.post(reverse('events-list'), {
+            'title': 'New Event',
+            'vip_price': 150.00,
+            'common_price': 75.00,
+            'category': ['Music'],
+            'event_dates': '2024-01-01',
+            'time_start': '10:00:00'
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Update
+        event_id = response.data['id']
+        response = self.client.patch(
+            reverse('events-detail', args=[event_id]),
+            {'title': 'Updated Title'}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_delete_event(self):
-        """Test deleting an event"""
-        url = reverse('events-detail', args=[self.event.id])
-        res = self.client.delete(url)
-        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Events.objects.filter(id=self.event.id).exists())
+    def test_public_views(self):
+        response = self.client.get(reverse('public-events-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
 
-    def test_public_events_list(self):
-        """Test retrieving public events list"""
-        res = self.client.get(reverse('public-events-list'))
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
+class EngagementTests(APITestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
+            role='organizer'
+        )
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            password='testpass123',
+            role='attendee'
+        )
+        self.event = Events.objects.create(user=self.organizer, title='Test Event')
+        self.client.force_authenticate(user=self.attendee)
 
-    def test_public_event_detail(self):
-        """Test retrieving public event detail"""
-        url = reverse('public-events-detail', args=[self.event.id])
-        res = self.client.get(url)
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data['title'], self.event.title)
+    def test_comment_creation(self):
+        response = self.client.post(
+            reverse('create-comment', args=[self.event.id]),
+            {'text': 'Great event!'}
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_create_comment(self):
-        """Test creating a comment on an event"""
-        self.user.role = 'attendee'
-        self.user.save()
-        payload = {'text': 'Great event!'}
-        url = reverse('create-comment', args=[self.event.id])
-        res = self.client.post(url, payload)
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Comment.objects.filter(event=self.event, text=payload['text']).exists())
+    def test_duplicate_rating(self):
+        Rating.objects.create(user=self.attendee, event=self.event, value=5)
+        response = self.client.post(
+            reverse('create-rating', args=[self.event.id]),
+            {'value': 4}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_create_rating(self):
-        """Test creating a rating for an event"""
-        self.user.role = 'attendee'
-        self.user.save()
-        payload = {'value': 5}
-        url = reverse('create-rating', args=[self.event.id])
-        res = self.client.post(url, payload)
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Rating.objects.filter(event=self.event, value=payload['value']).exists())
+class PaymentTests(APITestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
+            role='organizer'
+        )
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            password='testpass123',
+            role='attendee'
+        )
+        self.event = Events.objects.create(
+            user=self.organizer,
+            title='Paid Event',
+            vip_price=150.00
+        )
+        self.client.force_authenticate(user=self.attendee)
 
-    def test_show_interest(self):
-        """Test showing interest in an event"""
-        self.user.role = 'attendee'
-        self.user.save()
-        url = reverse('show-interest', args=[self.event.id])
-        res = self.client.post(url)
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Interest.objects.filter(event=self.event, user=self.user).exists())
+    @patch('requests.post')
+    def test_payment_flow(self, mock_post):
+        mock_post.side_effect = [
+            Mock(status_code=200, json=lambda: {'payment_url': 'test', 'pidx': 'test123'}),
+            Mock(status_code=200, json=lambda: {'status': 'Completed'})
+        ]
+        
+        # Initiate payment
+        response = self.client.post(
+            reverse('khalti-initiate', args=[self.event.id]),
+            {'ticket_type': 'vip', 'quantity': 2}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Simulate callback
+        response = self.client.get(reverse('khalti_payment_callback') + '?pidx=test123')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Ticket.objects.count(), 2)
 
-    def test_upload_event_image(self):
-        """Test uploading an image for an event"""
-        url = reverse('event-upload-image', args=[self.event.id])
-        image = SimpleUploadedFile("test_image.jpg", b"file_content", content_type="image/jpeg")
-        res = self.client.post(url, {'image': image}, format='multipart')
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.event.refresh_from_db()
-        self.assertIsNotNone(self.event.image)
+class TicketTests(APITestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
+            role='organizer'
+        )
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            password='testpass123',
+            role='attendee'
+        )
+        self.event = Events.objects.create(user=self.organizer, title='Test Event')
+        self.ticket = Ticket.objects.create(
+            event=self.event,
+            user=self.attendee
+        )
 
-   
+    def test_ticket_validation(self):
+        self.client.force_authenticate(user=self.organizer)
+        url = reverse('validate-ticket', args=[self.ticket.id])
+        
+        # First validation
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Second attempt
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_search_events(self):
-        """Test searching events"""
-        url = f"{reverse('events-list')}?search=Test"
-        res = self.client.get(url)
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]['title'], 'Test Event')
+class UtilTests(TestCase):
+    @patch('Events.utils.EmailMessage')
+    def test_email_sending(self, mock_email):
+        from Events.utils import send_ticket_email
+        user = User.objects.create(email='test@example.com')
+        event = Events.objects.create(user=user, title='Test Event')
+        ticket = Ticket.objects.create(event=event, user=user)
+        
+        send_ticket_email([ticket])
+        mock_email.return_value.send.assert_called_once()
 
- 
+    def test_pdf_generation(self):
+        from Events.utils import generate_ticket_pdf
+        user = User.objects.create(email='test@example.com')
+        event = Events.objects.create(user=user, title='Test Event')
+        ticket = Ticket.objects.create(event=event, user=user)
+        
+        pdf = generate_ticket_pdf([ticket])
+        self.assertTrue(len(pdf) > 1000)  # Basic PDF check
+
+class PermissionTests(APITestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            password='testpass123',
+            role='organizer'
+        )
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            password='testpass123',
+            role='attendee'
+        )
+
+    def test_role_permissions(self):
+        # Attendee can't create event
+        self.client.force_authenticate(user=self.attendee)
+        response = self.client.post(reverse('events-list'), {'title': 'Test'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

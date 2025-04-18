@@ -13,6 +13,6 @@ urlpatterns = [
     path('sign-up/', views.CreateUserView.as_view(), name='sign-up'),
     path('login/', views.CreateTokenView.as_view(), name='login'),
     path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
-
+    path('admin/users/<int:pk>/', views.ManageUserByAdminView.as_view(), name='admin-manage-user'),
     path('profile/', views.ManageUserView.as_view(), name='profile'),
 ]
