@@ -45,7 +45,8 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def _handle_categories(self, category_names, event):
-        for name in category_names:
+        
+        for name in category_names[0].split(','):
             normalized_name = name.strip().lower()
             cat, _ = Category.objects.get_or_create(name=normalized_name)
             event.category.add(cat)
