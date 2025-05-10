@@ -46,7 +46,7 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
 
     def _handle_categories(self, category_names, event):
         
-        for name in category_names[0].split(','):
+        for name in category_names:
             normalized_name = name.strip().lower()
             cat, _ = Category.objects.get_or_create(name=normalized_name)
             event.category.add(cat)
@@ -55,16 +55,41 @@ class EventCreateUpdateSerializer(serializers.ModelSerializer):
         return obj.interests.count()
 
 class EventListSerializer(serializers.ModelSerializer):
+    # category = CategorySerializer(many=True)
+    # event_dates = serializers.DateField(format="%Y-%m-%d")
+    # time_start = serializers.TimeField(format='%H:%M:%S')
+    # interest_count = serializers.SerializerMethodField()
+    # image = serializers.ImageField(required = False)
+    # class Meta:
+    #     model = Events
+    #     fields = ['id', 'title', 'event_dates', 'time_start', 'category','image','interest_count']
+
+    # def get_interest_count(self, obj):
+    #     return obj.interests.count()
     category = CategorySerializer(many=True)
+    comments = serializers.SerializerMethodField()
+    interested_count = serializers.SerializerMethodField()
+    ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
-    interest_count = serializers.SerializerMethodField()
-    image = serializers.ImageField(required = False)
+    user = serializers.StringRelatedField(read_only=True)
+    vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
+    common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     class Meta:
         model = Events
-        fields = ['id', 'title', 'event_dates', 'time_start', 'category','image','interest_count']
+        fields = [
+            'id', 'title', 'event_dates', 'time_start',
+             'venue_name', 'venue_location', 'venue_capacity', 
+            'description', 'image', 'category',
+              'comments', 'ratings', 'user','vip_price','common_price','interested_count',
+        ]
 
-    def get_interest_count(self, obj):
+    def get_comments(self, obj):
+        return CommentSerializer(obj.comments.all(), many=True).data
+
+    def get_ratings(self, obj):
+        return RatingSerializer(obj.ratings.all(), many=True).data
+    def get_interested_count(self, obj):
         return obj.interests.count()
 class EventDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)

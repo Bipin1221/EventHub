@@ -11,6 +11,7 @@ from django.conf import settings
 import requests
 import json
 
+
 from core.models import Events, Category, Interest, Rating,Ticket
 from .serializers import (
     EventCreateUpdateSerializer,
@@ -237,7 +238,7 @@ class TicketValidationAPIView(APIView):
                 "ticket_id": str(ticket.id),
                 "event": ticket.event.title,
                 "attendee": ticket.user.email,
-                "ticeket_used": ticket.delete()
+                #"ticeket_used": ticket.delete()
             },
             status=status.HTTP_200_OK
             
@@ -301,7 +302,7 @@ class KhaltiInitiatePaymentAPIView(APIView):
             # Prepare Khalti payload
             payload = {
                 "return_url": request.build_absolute_uri(reverse("khalti_payment_callback")),
-                "website_url": "https://yourdomain.com",
+                "website_url": "http://localhost:5173",
                 "amount": int(total_amount * 100),  # Convert to paisa
                 "purchase_order_id": str(payment_order.id),
                 "purchase_order_name": f"Ticket-{payment_order.id}",
@@ -334,51 +335,52 @@ class KhaltiInitiatePaymentAPIView(APIView):
             return Response({"error": "Payment processing failed"}, 
                           status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+
+
+logger = logging.getLogger(__name__)
+
 class KhaltiPaymentCallbackView(APIView):
     def get(self, request):
         pidx = request.GET.get("pidx")
         transaction_id = request.GET.get("transaction_id")
-        
+
         logger.info(f"Payment callback received - pidx: {pidx}, transaction_id: {transaction_id}")
 
         if not pidx:
             logger.error("Missing pidx parameter in callback")
-            return Response({"error": "Missing payment reference ID"}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "status": "error",
+                "message": "Missing payment reference ID",
+                "redirect_url": "http://localhost:5173/"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Verify payment with Khalti
             headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}"}
-            logger.debug(f"Sending verification request for pidx: {pidx}")
-            
             verify_response = requests.post(
                 "https://a.khalti.com/api/v2/epayment/lookup/",
                 json={"pidx": pidx},
                 headers=headers,
-                timeout=10  # Add timeout for request
+                timeout=10
             )
-            
-            logger.debug(f"Khalti verification response: {verify_response.status_code} - {verify_response.text}")
 
             verify_response.raise_for_status()
             verify_data = verify_response.json()
 
-            logger.info(f"Verification data: {json.dumps(verify_data, indent=2)}")
+            logger.info(f"Khalti verification response: {json.dumps(verify_data, indent=2)}")
 
             if verify_data.get("status") == "Completed":
-                logger.info("Payment verified as completed")
-                
                 try:
-                    payment_order = PaymentOrder.objects.get(
-                        pidx=pidx,
-                        status='initiated'
-                    )
+                    payment_order = PaymentOrder.objects.get(pidx=pidx, status='initiated')
                 except PaymentOrder.DoesNotExist:
                     logger.error(f"PaymentOrder not found for pidx: {pidx}")
-                    return Response({"error": "Invalid transaction reference"}, 
-                                  status=status.HTTP_400_BAD_REQUEST)
+                    return Response({
+                        "status": "error",
+                        "message": "Invalid transaction reference",
+                        "redirect_url": "http://localhost:5173/"
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Create tickets
                 try:
                     tickets = [
                         Ticket.objects.create(
@@ -391,43 +393,65 @@ class KhaltiPaymentCallbackView(APIView):
                     logger.info(f"Created {len(tickets)} tickets")
                 except Exception as e:
                     logger.error(f"Ticket creation failed: {str(e)}")
-                    return Response({"error": "Ticket generation failed"}, 
-                                  status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    return Response({
+                        "status": "error",
+                        "message": "Ticket generation failed",
+                        "redirect_url": "http://localhost:5173/"
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-                # Send tickets email
                 try:
                     send_ticket_email(tickets)
                     logger.info(f"Sent ticket email to {payment_order.user.email}")
                 except Exception as e:
                     logger.error(f"Email sending failed: {str(e)}")
-                    return Response({"error": "Ticket delivery failed"}, 
-                                  status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    return Response({
+                        "status": "error",
+                        "message": "Ticket delivery failed",
+                        "redirect_url": "http://localhost:5173/"
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-                # Update payment status
+                # Mark payment as complete
                 payment_order.status = 'completed'
-                payment_order.transaction_id = transaction_id
+                payment_order.transaction_id = transaction_id or verify_data.get("transaction_id", "")
                 payment_order.save()
                 logger.info(f"Updated payment order {payment_order.id} to completed")
 
                 return Response({
                     "status": "success",
                     "message": "Tickets sent successfully!",
-                    "ticket_count": len(tickets)
-                }, status=status.HTTP_200_OK)
+                    "ticket_count": len(tickets),
+                    
+                    "auto_redirect":True,
+                             
+                    "redirect_url": "http://localhost:5173/attendee-dashboard/book-event"
+                    }, status=status.HTTP_200_OK)
+            
 
             logger.warning(f"Payment not completed. Status: {verify_data.get('status')}")
-            return Response({"error": f"Payment status: {verify_data.get('status')}"}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "status": "error",
+                "message": f"Payment status: {verify_data.get('status')}",
+                "redirect_url": "http://localhost:5173/"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Khalti API connection error: {str(e)}")
-            return Response({"error": "Payment gateway communication failed"}, 
-                          status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({
+                "status": "error",
+                "message": "Payment gateway communication failed",
+                "redirect_url": "http://localhost:5173/"
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except json.JSONDecodeError as e:
             logger.error(f"Invalid Khalti response format: {str(e)}")
-            return Response({"error": "Invalid payment gateway response"}, 
-                          status=status.HTTP_502_BAD_GATEWAY)
+            return Response({
+                "status": "error",
+                "message": "Invalid payment gateway response",
+                "redirect_url": "http://localhost:5173/"
+            }, status=status.HTTP_502_BAD_GATEWAY)
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-            return Response({"error": "Payment processing failed"}, 
-                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                "status": "error",
+                "message": "Payment processing failed",
+                "redirect_url": "http://localhost:5173/"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
