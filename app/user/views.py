@@ -86,7 +86,7 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
         if 'role' in serializer.validated_data and not request.user.is_staff:
             serializer.validated_data.pop('role')
         if 'email' in serializer.validated_data:
-            serializer.validated_dataa.pop('email')
+            serializer.validated_data.pop('email')
         
         self.perform_update(serializer)
         return Response(serializer.data)

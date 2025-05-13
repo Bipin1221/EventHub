@@ -60,7 +60,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='attendee')
-
+    image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
     objects = UserManager()
     # read_only_fields = ['role']
     USERNAME_FIELD = 'email'
