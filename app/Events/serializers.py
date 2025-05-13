@@ -72,7 +72,7 @@ class EventListSerializer(serializers.ModelSerializer):
     ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
-    user = serializers.StringRelatedField(read_only=True)
+    user = serializers.SerializerMethodField(read_only=True)
     vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     class Meta:
@@ -80,13 +80,15 @@ class EventListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity', 
-            'description', 'image', 'category',
-              'comments', 'ratings', 'user','vip_price','common_price','interested_count',
+            'description','user', 'image', 'category',
+              'comments', 'ratings','vip_price','common_price','interested_count',
         ]
 
     def get_comments(self, obj):
         return CommentSerializer(obj.comments.all(), many=True).data
 
+    def get_user(self, obj):
+        return obj.user.name
     def get_ratings(self, obj):
         return RatingSerializer(obj.ratings.all(), many=True).data
     def get_interested_count(self, obj):

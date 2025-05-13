@@ -8,7 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.settings import api_settings
 from django.core.mail import send_mail
 from django.conf import settings
-from user.serializers import UserSerializer, AuthTokenSerializer,PasswordChangeSerializer
+from core.models import PasswordResetToken
+from user.serializers import UserSerializer, AuthTokenSerializer,PasswordChangeSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -125,3 +126,49 @@ class ChangePasswordView(generics.GenericAPIView):
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response({"message": "Password updated successfully"})
+    
+# core/views.py
+
+# core/views.py
+
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from rest_framework import status
+from user.serializers import PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+
+class PasswordResetRequestView(APIView):
+    @extend_schema(
+        request=PasswordResetRequestSerializer,
+        responses={200: OpenApiExample("Success", value={"message": "Password reset link sent to email."}),
+                   400: OpenApiExample("Error", value={"email": ["No user with this email exists."]})},
+        description="Send password reset email to user. Provide email in request body."
+    )
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+        token_obj = PasswordResetToken.objects.create(user=user)
+        reset_link = f"http://localhost:5173/reset-password?token={token_obj.token}"
+
+        send_mail(
+            subject="Password Reset Request",
+            message=f"Click here to reset your password: {reset_link}",
+            from_email="noreply@eventhub.com",
+            recipient_list=[email],
+        )
+        return Response({"message": "Password reset link sent to email."}, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    @extend_schema(
+        request=PasswordResetConfirmSerializer,
+        responses={200: OpenApiExample("Success", value={"message": "Password reset successful."}),
+                   400: OpenApiExample("Error", value={"token": ["Token has expired"]})},
+        description="Confirm password reset using token and set a new password."
+    )
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
