@@ -10,9 +10,8 @@ from django.contrib.auth.models import (
 )
 from django.conf import settings
 from django.utils import timezone
-import uuid
-from django.db import models
-from django.conf import settings
+
+
 from Events.utils import generate_qr_code
 
 import qrcode
@@ -20,6 +19,8 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 
 
+
+from datetime import timedelta
 
 def event_image_file_path(instance, filename):
     """Generate file path for new event image."""
@@ -185,14 +186,6 @@ class PaymentOrder(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-
-# core/models.py
-import uuid
-from django.conf import settings
-from django.db import models
-from django.utils import timezone
-from datetime import timedelta
-
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     token = models.UUIDField(default=uuid.uuid4, unique=True)
@@ -201,3 +194,11 @@ class PasswordResetToken(models.Model):
     def is_expired(self):
         return timezone.now() > self.created_at + timedelta(hours=1)  # 1 hour expiry
     
+
+class EmailVerificationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(hours=24)  # 24-hour expiry

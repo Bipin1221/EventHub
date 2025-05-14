@@ -8,11 +8,18 @@ from rest_framework.views import APIView
 from rest_framework.settings import api_settings
 from django.core.mail import send_mail
 from django.conf import settings
-from core.models import PasswordResetToken
+from core.models import PasswordResetToken,EmailVerificationToken
 from user.serializers import UserSerializer, AuthTokenSerializer,PasswordChangeSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
+
+
+
+
+from django.utils import timezone
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
 
 class CreateUserView(generics.CreateAPIView):
     """Create a new user in the system."""
@@ -131,9 +138,7 @@ class ChangePasswordView(generics.GenericAPIView):
 
 # core/views.py
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
-from rest_framework import status
-from user.serializers import PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+
 
 class PasswordResetRequestView(APIView):
     @extend_schema(
@@ -147,6 +152,7 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data['email']
+       
         user = User.objects.get(email=email)
         token_obj = PasswordResetToken.objects.create(user=user)
         reset_link = f"http://localhost:5173/reset-password?token={token_obj.token}"
@@ -172,3 +178,47 @@ class PasswordResetConfirmView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
+
+
+
+
+
+
+class EmailVerificationView(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=str,
+                required=True,
+                location=OpenApiParameter.QUERY,
+                description="UUID token sent to the user's email for verification"
+            )
+        ],
+        responses={
+            200: OpenApiResponse(response=None, description="Email verified successfully."),
+            400: OpenApiResponse(response=None, description="Invalid or expired token."),
+        },
+        description="Verify user email using the token sent via email. "
+                    "This will activate the user account if the token is valid."
+    )
+    def get(self, request):
+        token_value = request.query_params.get("token")
+        if not token_value:
+            return Response({"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = EmailVerificationToken.objects.get(token=token_value)
+        except EmailVerificationToken.DoesNotExist:
+            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if token.is_expired():
+            token.delete()
+            return Response({"error": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = token.user
+        user.is_active = True
+        user.save()
+        token.delete()
+
+        return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)

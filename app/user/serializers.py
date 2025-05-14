@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from core.models import PasswordResetToken
+from core.models import PasswordResetToken,EmailVerificationToken
 
 User = get_user_model()
 
@@ -20,7 +20,25 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+       
+        user = User.objects.create_user(**validated_data)
+        user.is_active = False  # Temporarily deactivate
+        user.save()
+
+        # Generate token
+        token = EmailVerificationToken.objects.create(user=user)
+
+        # Send email
+        from django.core.mail import send_mail
+        verification_link = f"http://localhost:5173/verify-email?token={token.token}"
+        send_mail(
+            subject="Verify your email",
+            message=f"Click the link to verify your account: {verification_link}",
+            from_email="noreply@eventhub.com",
+            recipient_list=[user.email],
+        )
+        return user
+
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
