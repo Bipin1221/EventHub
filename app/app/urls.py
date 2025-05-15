@@ -25,7 +25,7 @@ SpectacularSwaggerView
 )
 
 
-from Events.views import KhaltiInitiatePaymentAPIView, KhaltiPaymentCallbackView
+from Events.views import KhaltiInitiatePaymentAPIView, KhaltiPaymentCallbackView, NotificationListView, MarkNotificationReadView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/schema/',SpectacularAPIView.as_view(),name='api-schema'),
@@ -37,7 +37,11 @@ urlpatterns = [
 urlpatterns += [
     path('events/<int:pk>/khalti-initiate/', KhaltiInitiatePaymentAPIView.as_view(), name='khalti_initiate'),
     path('khalti-callback/', KhaltiPaymentCallbackView.as_view(), name='khalti_payment_callback'),
+    path('notifications/', NotificationListView.as_view(), name='notifications-list'),
+    path('notifications/<int:pk>/read/', MarkNotificationReadView.as_view(), name='notifications-mark-read'),
+
 ]
+
 
 
 if settings.DEBUG:

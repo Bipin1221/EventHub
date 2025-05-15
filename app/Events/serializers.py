@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Events, Category, Interest, Comment, Rating, Ticket
+from core.models import Events, Category, Interest, Comment, Rating, Ticket, Notification
 from rest_framework.exceptions import ValidationError
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -72,7 +72,7 @@ class EventListSerializer(serializers.ModelSerializer):
     ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
-    user = serializers.SerializerMethodField(read_only=True)
+    organizer_name = serializers.CharField(source='user.name', read_only=True)
     vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     class Meta:
@@ -80,15 +80,15 @@ class EventListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity', 
-            'description','user', 'image', 'category',
+            'description','organizer_name', 'image', 'category',
               'comments', 'ratings','vip_price','common_price','interested_count',
         ]
 
     def get_comments(self, obj):
         return CommentSerializer(obj.comments.all(), many=True).data
 
-    def get_user(self, obj):
-        return obj.user.name
+    # def get_organizer_name(self, obj):
+    #     return obj.user.name
     def get_ratings(self, obj):
         return RatingSerializer(obj.ratings.all(), many=True).data
     def get_interested_count(self, obj):
@@ -100,7 +100,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
     ratings = serializers.SerializerMethodField()
     event_dates = serializers.DateField(format="%Y-%m-%d")
     time_start = serializers.TimeField(format='%H:%M:%S')
-    user = serializers.StringRelatedField(read_only=True)
+    organizer_name = serializers.CharField(source ='user.name', read_only=True)
     vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     class Meta:
@@ -109,8 +109,9 @@ class EventDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity', 
             'description', 'image', 'category',
-              'comments', 'ratings', 'user','vip_price','common_price','interested_count',
+              'comments', 'ratings', 'organizer_name','vip_price','common_price','interested_count',
         ]
+    
 
     def get_comments(self, obj):
         return CommentSerializer(obj.comments.all(), many=True).data
@@ -182,3 +183,13 @@ class KhaltiInitiateSerializer(serializers.Serializer):
     class Meta:
         fields = ['id','ticket_type', 'quantity']
         read_only_fields = ['id']
+
+
+
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'recipient', 'event', 'message', 'is_read', 'created_at']
+        read_only_fields = ['id', 'recipient', 'event', 'message', 'created_at']

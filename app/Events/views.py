@@ -12,7 +12,7 @@ import requests
 import json
 
 from django.http import HttpResponseRedirect
-from core.models import Events, Category, Interest, Rating,Ticket
+from core.models import Events, Category, Interest, Rating, Ticket, Notification
 from .serializers import (
     EventCreateUpdateSerializer,
     EventListSerializer,
@@ -22,13 +22,13 @@ from .serializers import (
     CommentSerializer,
     RatingSerializer,
     InterestSerializer,
-  
+    NotificationSerializer,
     CategorySerializer,
     TicketSerializer,
+    KhaltiInitiateSerializer,
     
 )
-
-from .serializers import KhaltiInitiateSerializer
+from .filters import EventFilter
 from django.urls import reverse
 import logging
 logger = logging.getLogger(__name__)
@@ -57,7 +57,8 @@ class EventsViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsOrganizer]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-   
+    filterset_class = EventFilter  # 👈 ADD THIS
+
     search_fields = ['title','category__name', 'venue_location'] 
 
     def get_serializer_class(self):
@@ -106,7 +107,7 @@ class PublicEventsListView(generics.ListAPIView):
     serializer_class = PublicEventsSerializer
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-   
+    filterset_class = EventFilter
     search_fields = ['title','category__name', 'venue_location'] 
     def get_queryset(self):
         return Events.objects.annotate(interest_count = Count('interests')).order_by('-interest_count','-created_at')
@@ -157,6 +158,29 @@ class InterestCreateAPIView(generics.CreateAPIView):
             raise ValidationError("You've already shown interest")
         serializer.save(user=self.request.user, event=event)
  
+
+class NotificationListView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+    permission_classes= [IsAuthenticated]
+    def get_queryset(self):
+        user = self.request.user
+        return Notification.objects.filter(recipient = user).order_by('-created_at')
+    
+class MarkNotificationReadView(generics.UpdateAPIView):
+    """Mark a notification as read."""
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        notification_id = kwargs.get('pk')
+        try:
+            notification = Notification.objects.get(id=notification_id, recipient=request.user)
+            notification.is_read = True
+            notification.save()
+            return Response({'message': 'Notification marked as read.'}, status=status.HTTP_200_OK)
+        except Notification.DoesNotExist:
+            return Response({'error': 'Notification not found or unauthorized.'}, status=status.HTTP_404_NOT_FOUND)
+
 # class TicketPurchaseAPIView(generics.CreateAPIView):
 #     serializer_class = TicketSerializer
 #     permission_classes = [IsAuthenticated]
@@ -440,3 +464,7 @@ class KhaltiPaymentCallbackView(APIView):
                 "status": "error",
                 "message": "Payment processing failed"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+

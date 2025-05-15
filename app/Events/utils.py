@@ -144,3 +144,51 @@ def send_ticket_email(tickets):
     except Exception as e:
         logger.error(f"Failed to send tickets: {str(e)}", exc_info=True)
         raise Exception("Failed to send tickets")
+    
+def send_event_notification(user, event, message_type):
+    """
+    Sends an email notification to the user about the event.
+    
+    Args:
+        user (User): The recipient of the notification.
+        event (Events): The event details.
+        message_type (str): 'ticket' for Buyers, 'reminder' for Organizer.
+    """
+    if message_type == 'ticket':
+        subject = f"Don't miss the {event.title}"
+        body = (
+            f"Hello {user.name},\n\n"
+            f"Thank you for buying ticket of:\n"
+            f"🔹 Event: {event.title}\n"
+            f"🔹 Date: {event.event_dates.strftime('%d %B, %Y')}\n"
+            f"🔹 Time: {event.time_start.strftime('%I:%M %p')}\n"
+            f"🔹 Venue: {event.venue_name}, {event.venue_location}\n\n"
+            "We will keep you updated with any important information.\n\n"
+            "Best Regards,\n"
+            "The EventHub Team"
+        )
+    elif message_type == 'reminder':
+        subject = f"Reminder: Your Event '{event.title}' is Tomorrow!"
+        body = (
+            f"Hello {user.name},\n\n"
+            f"This is a reminder that your event is happening tomorrow:\n"
+            f"🔹 Event: {event.title}\n"
+            f"🔹 Date: {event.event_dates.strftime('%d %B, %Y')}\n"
+            f"🔹 Time: {event.time_start.strftime('%I:%M %p')}\n"
+            f"🔹 Venue: {event.venue_name}, {event.venue_location}\n\n"
+            "Please make sure all preparations are in place.\n\n"
+            "Best Regards,\n"
+            "The Event Team"
+        )
+    else:
+        return
+    
+    # Prepare and send the email
+    email = EmailMessage(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email]
+    )
+    
+    email.send()
