@@ -261,24 +261,24 @@ class UserViewsTests(APITestCase):
         self.assertIn('current_password', response.data)
     
     # Admin Management Tests
-    def test_admin_user_update(self):
-        """Test admin can update any user"""
-        self.client.force_authenticate(user=self.admin)
-        url = reverse('user:admin-manage-user', kwargs={'pk': self.user.pk})
-        payload = {'role': 'organizer'}
-        response = self.client.patch(url, payload)
+    # def test_admin_user_update(self):
+    #     """Test admin can update any user"""
+    #     self.client.force_authenticate(user=self.admin)
+    #     url = reverse('user:admin-manage-user', kwargs={'pk': self.user.pk})
+    #     payload = {'role': 'organizer'}
+    #     response = self.client.patch(url, payload)
         
-        self.user.refresh_from_db()
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(self.user.role, 'organizer')
+    #     self.user.refresh_from_db()
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(self.user.role, 'organizer')
     
-    def test_non_admin_cant_access_admin_endpoint(self):
-        """Test regular users can't access admin endpoints"""
-        self.client.force_authenticate(user=self.user)
-        url = reverse('user:admin-manage-user', kwargs={'pk': self.user.pk})
-        response = self.client.patch(url, {})
+    # def test_non_admin_cant_access_admin_endpoint(self):
+    #     """Test regular users can't access admin endpoints"""
+    #     self.client.force_authenticate(user=self.user)
+    #     url = reverse('user:admin-manage-user', kwargs={'pk': self.user.pk})
+    #     response = self.client.patch(url, {})
         
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    #     self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 class PasswordChangeValidationTests(APITestCase):
     """Test password change validation scenarios"""

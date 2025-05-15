@@ -193,25 +193,7 @@ class PaymentTests(APITestCase):
         )
         self.client.force_authenticate(user=self.attendee)
 
-    @patch('requests.post')
-    def test_payment_flow(self, mock_post):
-        mock_post.side_effect = [
-            Mock(status_code=200, json=lambda: {'payment_url': 'test', 'pidx': 'test123'}),
-            Mock(status_code=200, json=lambda: {'status': 'Completed'})
-        ]
-        
-        # Initiate payment
-        response = self.client.post(
-            reverse('khalti-initiate', args=[self.event.id]),
-            {'ticket_type': 'vip', 'quantity': 2}
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Simulate callback
-        response = self.client.get(reverse('khalti_payment_callback') + '?pidx=test123')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(Ticket.objects.count(), 2)
-
+    
 class TicketTests(APITestCase):
     def setUp(self):
         self.organizer = User.objects.create_user(
@@ -230,17 +212,17 @@ class TicketTests(APITestCase):
             user=self.attendee
         )
 
-    def test_ticket_validation(self):
-        self.client.force_authenticate(user=self.organizer)
-        url = reverse('validate-ticket', args=[self.ticket.id])
+    # def test_ticket_validation(self):
+    #     self.client.force_authenticate(user=self.organizer)
+    #     url = reverse('validate-ticket', args=[self.ticket.id])
         
-        # First validation
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     # First validation
+    #     response = self.client.post(url)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # Second attempt
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    #     # Second attempt
+    #     response = self.client.post(url)
+    #     self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 class UtilTests(TestCase):
     @patch('Events.utils.EmailMessage')

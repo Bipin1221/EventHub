@@ -165,16 +165,25 @@ class InterestSerializer(serializers.ModelSerializer):
 
 class TicketSerializer(serializers.ModelSerializer):
     event_title = serializers.CharField(source='event.title', read_only=True)
-    user_email = serializers.StringRelatedField(source='event.user.email', read_only=True)
+    user_email = serializers.SerializerMethodField(read_only=True)
     quantity = serializers.IntegerField(default = 1)
+    event_dates = serializers.CharField(source='event.event_dates', read_only=True)
+    time_start = serializers.CharField(source='event.time_start', read_only=True)
+    venue_location = serializers.CharField(source='event.venue_location', read_only=True)
+    venue_name = serializers.CharField(source='event.venue_name', read_only=True)
+    
+
     class Meta:
         model = Ticket
         fields = [
             'id', 'event_title', 'user_email', 
-            'ticket_type', 'qr_code', 'quantity',
+            'ticket_type', 'qr_code', 'quantity','event_dates','time_start','venue_location', 'venue_name',
         ]
         read_only_fields = ['id', 'qr_code']
         write_only_fields = ['quantity']
+
+    def get_user_email(self, obj):
+        return obj.user.email
 
 
 class KhaltiInitiateSerializer(serializers.Serializer):
