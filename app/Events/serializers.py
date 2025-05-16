@@ -75,20 +75,21 @@ class EventListSerializer(serializers.ModelSerializer):
     organizer_name = serializers.CharField(source='user.name', read_only=True)
     vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
+    user= serializers.SerializerMethodField()
     class Meta:
         model = Events
         fields = [
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity', 
             'description','organizer_name', 'image', 'category',
-              'comments', 'ratings','vip_price','common_price','interested_count',
+              'comments', 'ratings','vip_price','common_price','interested_count','user',
         ]
 
     def get_comments(self, obj):
         return CommentSerializer(obj.comments.all(), many=True).data
 
-    # def get_organizer_name(self, obj):
-    #     return obj.user.name
+    def get_user(self, obj):
+        return obj.user.email
     def get_ratings(self, obj):
         return RatingSerializer(obj.ratings.all(), many=True).data
     def get_interested_count(self, obj):
@@ -103,15 +104,19 @@ class EventDetailSerializer(serializers.ModelSerializer):
     organizer_name = serializers.CharField(source ='user.name', read_only=True)
     vip_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
     common_price = serializers.DecimalField(max_digits=10,decimal_places=2,required = False)
+    user= serializers.SerializerMethodField()
     class Meta:
         model = Events
         fields = [
             'id', 'title', 'event_dates', 'time_start',
              'venue_name', 'venue_location', 'venue_capacity', 
             'description', 'image', 'category',
-              'comments', 'ratings', 'organizer_name','vip_price','common_price','interested_count',
+              'comments', 'ratings', 'organizer_name','vip_price','common_price','interested_count','user'
         ]
     
+
+    def get_user(self, obj):
+        return obj.user.email
 
     def get_comments(self, obj):
         return CommentSerializer(obj.comments.all(), many=True).data
