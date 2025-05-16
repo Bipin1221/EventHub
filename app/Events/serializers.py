@@ -207,3 +207,41 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = ['id', 'recipient', 'event', 'message', 'is_read', 'created_at']
         read_only_fields = ['id', 'recipient', 'event', 'message', 'created_at']
+
+
+
+from rest_framework import serializers
+from core.models import Ticket,Events
+
+from django.db.models import Sum
+
+class TicketStatsSerializer(serializers.Serializer):
+    event_id = serializers.IntegerField()
+    event_title = serializers.CharField()
+    venue_capacity = serializers.IntegerField()
+    vip_tickets_sold = serializers.IntegerField()
+    common_tickets_sold = serializers.IntegerField()
+    total_tickets_sold = serializers.IntegerField()
+    remaining_tickets = serializers.IntegerField()
+    total_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+    @staticmethod
+    def get_stats(event):
+        tickets = Ticket.objects.filter(event=event)
+        vip_sold = tickets.filter(ticket_type__iexact='VIP').aggregate(total=Sum('quantity'))['total'] or 0
+        common_sold = tickets.filter(ticket_type__iexact='COMMON').aggregate(total=Sum('quantity'))['total'] or 0
+
+        total_sold = vip_sold + common_sold
+        remaining = max(event.venue_capacity - total_sold, 0)
+        total_price = (vip_sold * event.vip_price) + (common_sold * event.common_price)
+        return {
+            'event_id': event.id,
+            'event_title': event.title,
+            'venue_capacity': event.venue_capacity,
+            'vip_tickets_sold': vip_sold,
+            'common_tickets_sold': common_sold,
+            'total_tickets_sold': total_sold,
+            'remaining_tickets': remaining,
+            'total_price': total_price
+
+        }

@@ -14,7 +14,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from Events.utils import generate_qr_code
-
+from datetime import timedelta
 import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile

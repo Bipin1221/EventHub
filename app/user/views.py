@@ -12,6 +12,7 @@ from core.models import PasswordResetToken
 from user.serializers import UserSerializer, AuthTokenSerializer,PasswordChangeSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
 
 class CreateUserView(generics.CreateAPIView):

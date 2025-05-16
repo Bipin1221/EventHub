@@ -315,7 +315,7 @@ class UserTicketsAPIView(generics.ListAPIView):
         user = self.request.user
         if user.role != 'attendee':
             raise PermissionDenied(detail="Only attendees can view their tickets.")
-        return Ticket.objects.filter(user=user).select_related('event')
+        return Ticket.objects.filter(user=user).select_related('event').order_by('-created_at')
     
 
 class KhaltiInitiatePaymentAPIView(APIView):
@@ -500,6 +500,30 @@ class KhaltiPaymentCallbackView(APIView):
                 "status": "error",
                 "message": "Payment processing failed"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from core.models import Events
+from .serializers import TicketStatsSerializer
+from rest_framework import status
+# Use your actual permission class
+
+class TicketStatsView(APIView):
+    permission_classes = [IsAuthenticated, IsOrganizer]
+
+    def get(self, request, event_id):
+        try:
+            event = Events.objects.get(pk=event_id, user=request.user)
+        except Events.DoesNotExist:
+            return Response({'error': 'Event not found or unauthorized.'}, status=status.HTTP_404_NOT_FOUND)
+
+        stats_data = TicketStatsSerializer.get_stats(event)
+        serializer = TicketStatsSerializer(stats_data)
+        return Response(serializer.data)
 
 
 

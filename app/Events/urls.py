@@ -17,6 +17,8 @@ urlpatterns = [
     # path('<int:pk>/purchase-ticket/', views.TicketPurchaseAPIView.as_view(), name='purchase-ticket'),
     path('validate-ticket/<uuid:ticket_id>/', views.TicketValidationAPIView.as_view(), name='validate-ticket'),
     path('my-tickets/', views.UserTicketsAPIView.as_view(), name='user-tickets'),
+    path('<int:event_id>/ticket-stats/', views.TicketStatsView.as_view(), name='event-ticket-stats'),
+
     # path('khalti/initiate/<int:pk>/', views.KhaltiInitiatePaymentAPIView.as_view(), name='khalti-initiate'),
     path('', include(router.urls)),
 
