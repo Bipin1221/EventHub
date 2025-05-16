@@ -197,5 +197,6 @@ SIMPLE_JWT = {
 KHALTI_INITIATE_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
 KHALTI_VERIFY_URL = "https://a.khalti.com/api/v2/payment/verify/"
 
-KHALTI_PUBLIC_KEY = "fa0543e3dbf8427294dea672f66f7cb3"
-KHALTI_SECRET_KEY = "192d9257f58d40038ab9d962e4eb99f0" 
+
+KHALTI_PUBLIC_KEY = "5f89f1d839ff42c8adb3c56435f699f2"
+KHALTI_SECRET_KEY = "31b4e5e0bd4348f1bfe0b3046e1b2d2f" 
