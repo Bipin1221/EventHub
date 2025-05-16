@@ -189,11 +189,6 @@ class PaymentOrder(models.Model):
 
 
 # core/models.py
-import uuid
-from django.conf import settings
-from django.db import models
-from django.utils import timezone
-from datetime import timedelta
 
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

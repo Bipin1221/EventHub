@@ -146,19 +146,55 @@ class RatingCreateAPIView(generics.CreateAPIView):
             raise ValidationError("You've already rated this event")
         serializer.save(user=self.request.user, event=event)
 
-class InterestCreateAPIView(generics.CreateAPIView):
+
+class InterestToggleAPIView(generics.GenericAPIView):
     serializer_class = InterestSerializer
     permission_classes = [IsAuthenticated]
-    
-    def perform_create(self, serializer):
-        event = get_object_or_404(Events, pk=self.kwargs['pk'])
-        if self.request.user.role != 'attendee':
-            raise PermissionDenied("Only attendees can show interest")
-        if Interest.objects.filter(user=self.request.user, event=event).exists():
-            raise ValidationError("You've already shown interest")
-        serializer.save(user=self.request.user, event=event)
- 
 
+    def get(self, request, pk=None):
+        event = get_object_or_404(Events, pk=pk)
+        user = request.user
+
+        # Check if user is attendee, optional but recommended
+        if user.role != 'attendee':
+            return Response({
+                'interested': False,
+                'interest_count': event.interests.count()
+            }, status=status.HTTP_200_OK)
+
+        interest_exists = Interest.objects.filter(user=user, event=event).exists()
+
+        return Response({
+            'interested': interest_exists,
+            'interest_count': event.interests.count()
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request, pk=None):
+        event = get_object_or_404(Events, pk=pk)
+        user = request.user
+
+        if user.role != 'attendee':
+            raise PermissionDenied("Only attendees can show interest")
+
+        interest = Interest.objects.filter(user=user, event=event).first()
+
+        if interest:
+            # Interest exists — toggle off by deleting
+            interest.delete()
+            return Response({
+                'interested': False,
+                'interest_count': event.interests.count()
+            }, status=status.HTTP_200_OK)
+
+        # Interest does not exist — create new
+        serializer = self.get_serializer(data={})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=user, event=event)
+
+        return Response({
+            'interested': True,
+            'interest_count': event.interests.count()
+        }, status=status.HTTP_201_CREATED)
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
     permission_classes= [IsAuthenticated]
