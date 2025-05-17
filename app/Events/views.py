@@ -26,6 +26,7 @@ from .serializers import (
     CategorySerializer,
     TicketSerializer,
     KhaltiInitiateSerializer,
+    TicketStatsSerializer,
     
 )
 from .filters import EventFilter
@@ -195,6 +196,15 @@ class InterestToggleAPIView(generics.GenericAPIView):
             'interested': True,
             'interest_count': event.interests.count()
         }, status=status.HTTP_201_CREATED)
+    
+
+class ListEventInterest(generics.ListAPIView):
+    serializer_class = PublicEventsDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Events.objects.filter(interests__user=self.request.user)
+
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
     permission_classes= [IsAuthenticated]
@@ -504,12 +514,6 @@ class KhaltiPaymentCallbackView(APIView):
 
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from core.models import Events
-from .serializers import TicketStatsSerializer
-from rest_framework import status
 # Use your actual permission class
 
 class TicketStatsView(APIView):
